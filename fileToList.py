@@ -1,3 +1,5 @@
 def fileToWords(fileRoute):
-    words = open(fileRoute).read().split()
+    fp = open(fileRoute)
+    words = fp.read().split()
+    fp.close()
     return words
