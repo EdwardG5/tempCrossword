@@ -47,6 +47,7 @@ GUI:
 - allow user to view multiple solutions: prev next buttons allowing them to flip through the set of solutions 
 - display the number of solutions found
 - reset button to clear board of all modifications 
+- title of window is tk not crosswordSolver
 
 Logic: 
 - Pre-process word list -> decide the best order in which to evaluate them while solving (open problem, best approach not known)
