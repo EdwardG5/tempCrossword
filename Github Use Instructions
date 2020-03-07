@@ -1,0 +1,33 @@
+Hey : ) 
+
+I know you've never used git/github before (they're different!) but they aren't all too hard to get your head around. 
+
+Git aims to solve the issues we were running into last time: 
+- different versions of different files on our computers
+- difficulty transfering changes
+- almost impossible to collaborate on the same files because what's changed becomes too confusing 
+
+Use instructions: 
+
+The idea is that you have local files on your laptop, and those files are connected to the master files here on github. My local files are similarly linked. You can change your files locally, 'add' them to the changes you want to save, and then save those changes (git commit) to the development history. That then becomes a timestamped version of all of the files. For me to see your changes, you 'push' your changes to our communal version, and I then 'pull' those changes (which are then merged into my local files). The same happens vice versa. 
+
+To get set up, 
+1) Open up terminal 
+Enter:
+2) cd Documents
+3) git clone https://github.com/EdwardG5/Crossword.git
+(this creates a folder called Crossword in your Documents area. Feel free to create this folder anywhere else)
+
+You're now all set up!
+
+cd into crossword and you should see all the files that you can see here on the website. 
+
+For good measure, "git pull" immediately to get any changes. 
+
+While developing: 
+
+As you work on your files, you don't need to save every minor change, but anything substantial you should save. Run "git add fileName" to add this file to the things you want to change, and then run 'git commit -m "commit message. this message should describe what you modified - for your sake when looking back or if you need to reset (imagine accidentally deleting a file!) and for my sake so I know what you changed"'. To allow me to see what this is, run "git push". I can then pull these changes and see what you've done. 
+
+Since I'm also working on these files, you should run "git pull" every now and then so that the files you have locally don't become too outdated. 
+
+Let me know if you have any questions!
