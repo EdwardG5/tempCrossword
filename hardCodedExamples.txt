@@ -1,0 +1,29 @@
+# Hard coded examples for simple tests 
+
+# Example 1: 2x2 grid
+word1 = Word(2, 2, 0, 1)
+word2 = Word(2, 2, 0, 2)
+word3 = Word(2, 2, 0, 3)
+word4 = Word(2, 2, 0, 4)
+word1._pointers[1], word1._indices[1] = (word4, 1)
+word1._pointers[2], word1._indices[2] = (word2, 1)
+word2._pointers[1], word2._indices[1] = (word1, 2)
+word2._pointers[2], word2._indices[2] = (word3, 2)
+word3._pointers[2], word3._indices[2] = (word2, 2)
+word3._pointers[1], word3._indices[1] = (word4, 2)
+word4._pointers[1], word4._indices[1] = (word1, 1)
+word4._pointers[2], word4._indices[2] = (word3, 1)
+
+# Example 2: 3x3 grid, hole in middle
+word1 = Word(3, 2, 0, 1)
+word2 = Word(3, 2, 0, 2)
+word3 = Word(3, 2, 0, 3)
+word4 = Word(3, 2, 0, 4)
+word1._pointers[1], word1._indices[1] = (word4, 1)
+word1._pointers[3], word1._indices[3] = (word2, 1)
+word2._pointers[1], word2._indices[1] = (word1, 3)
+word2._pointers[3], word2._indices[3] = (word3, 3)
+word3._pointers[3], word3._indices[3] = (word2, 3)
+word3._pointers[1], word3._indices[1] = (word4, 3)
+word4._pointers[1], word4._indices[1] = (word1, 1)
+word4._pointers[3], word4._indices[3] = (word3, 1)
