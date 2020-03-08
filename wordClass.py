@@ -56,6 +56,20 @@ class Word:
 			if not self._notModify[x]:
 				self.setChar(x, "")
 
+	# Added for preprocessing
+	# (Virtually) Set chars of connected words. Just increment #set. 
+	def propagateSet(self):
+		for x in range(self.length()+1):
+			if self._modify[x]:
+				self._pointers[x]._set += 1
+
+	# Added for preprocessing
+	# 0 the set attribute. 
+	def clearSet(self):
+		for x in range(self.length()+1):
+			if self._modify[x]:
+				self._pointers[x]._set += 1
+
 	# Whether or not letter x has been assigned a letter or if it is a blank
 	def set(self, x):
 		return not self._chars[x] == ""
