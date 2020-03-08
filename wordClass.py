@@ -96,6 +96,9 @@ class Word:
 	def setIndices(self, index, choice):
 		self._indices[index] = choice
 
+	def numSet(self):
+		return self._set
+
 # -1 = w1 < w2, 0 = w1 = w2, 1 = w1 > w2
 def compareRanks(word1, word2):
 	r1 = word1.getRank()
