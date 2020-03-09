@@ -32,7 +32,7 @@ def solveHelper(wordList, trieList):
 	# Recursive case
 	else:
 		word = wordList.get(block=False) # currentWord. Next word to be filled in
-		solutions = match(word, 0, trieList.trie(word.length()), wordList, trieList) # Pass try of appropriate length
+		solutions = match(word, 0, trieList[word.length()], wordList, trieList) # Pass try of appropriate length
 		# Return wordlist to original state
 		wordList.put(word)
 		return solutions
@@ -111,7 +111,7 @@ def match(word, cL, node, wordList, root):
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
 # iW = infoWrapper
-def solve(wordList, iW):
+def solve2(wordList, iW):
 	readyWordList(wordList) # set ranks and such in situ
 	wordList = listToLifoQueue(wordList) # convert to stack
 	solutions = solveHelper(wordList, iW._tries) 

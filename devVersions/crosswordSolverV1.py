@@ -117,10 +117,10 @@ def match(word, cL, node, wordList, root):
 
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
-def solve(wordList, trie):
+def solve1(wordList, trie):
 	readyWordList(wordList)
 	wordList = listToLifoQueue(wordList)
-	solutions = solveHelper(wordList, root)
+	solutions = solveHelper(wordList, trie)
 	return solutions
 
 #---------------------------------------------------------------------------#

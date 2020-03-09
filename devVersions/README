@@ -1,3 +1,10 @@
+Reminder to self:
+
+When you run dev tests, the main crosswordSolver needs to not be running anything - creates collisions. 
+
+#---------------------------------------------------------------------------#
+
+
 These are development versions of crossword. 
 
 All have three main functions: (solveHelper, match, solve)
@@ -19,6 +26,7 @@ The development versions take various approaches in attempts to improve processi
 #---------------------------------------------------------------------------#
 
 crosswordV1: Stripped down version of the current main one (without version suffix)
+# Note: solution list is backwards relative to given list
 
 #---------------------------------------------------------------------------#
 

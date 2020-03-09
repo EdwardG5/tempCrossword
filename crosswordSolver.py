@@ -157,6 +157,7 @@ def readyTrie(dictName):
 
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
+# Note: solution list is backwards relative to given list
 def solve(wordList):
 	root = readyTrie(dictName)
 	readyWordList(wordList)
@@ -238,7 +239,7 @@ def gridTest():
 	word4._pointers[3], word4._indices[3] = (word3, 1)
 	words = [word1, word2, word3, word4]
 	# Solve grid crossword
-	solutions = solve(words, root)
+	solutions = solve(words)
 	print(nodesInTrie(root))
 
 def hcTest():
@@ -258,12 +259,27 @@ def hcTest():
 	solutions = solve(wordList)
 	print(solutions)
 
+def tTest():
+	word41 = Word(4, 1, 0, 1)
+	word42 = Word(3, 2, 0, 2)
+	word43 = Word(5, 1, 0, 3)
+	word41._pointers[1], word41._indices[1] = (word42, 1)
+	word42._pointers[1], word42._indices[1] = (word41, 1)
+	word42._pointers[3], word42._indices[3] = (word43, 2)
+	word43._pointers[2], word43._indices[2] = (word42, 3)
+	wordList3 = [word41, word42, word43]
+	solutions13 = solve(wordList3)
+	print(solutions13[0])
+
 #---------------------------------------------------------------------------#
 
 # If you're running this file as a standalone application: 
 
 def main():
+	main0()
+	gridTest()
 	hcTest()
+	tTest()
 
 # main()
 

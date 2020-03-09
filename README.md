@@ -5,7 +5,7 @@ Crossword solver with GUI allowing users to create custom board. Multi-language 
 
 Files: 
 - display: GUI interface
-- crosswordSolver.py: algorithmic brains 
+- crosswordSolver.py: algorithmic brains. # Note: solution list is backwards relative to given list
 - wordClass: data structure to represent words
 - nodeClass: data structure to build tries
 - fileToList: method to read words from file. Called from crosswordSolver
@@ -16,7 +16,7 @@ Files:
 
 From command line: 
 
-crosswordSolver as independant application: 
+crosswordSolver as independent application: 
 - modify parameters at beginning 
 - modify main function at the very end 
 python3 crosswordSolver.py 

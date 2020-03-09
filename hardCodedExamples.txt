@@ -27,3 +27,12 @@ word3._pointers[3], word3._indices[3] = (word2, 3)
 word3._pointers[1], word3._indices[1] = (word4, 3)
 word4._pointers[1], word4._indices[1] = (word1, 1)
 word4._pointers[3], word4._indices[3] = (word3, 1)
+
+# Example 3: 4 across, 3 down, 5 across
+word1 = Word(4, 1, 0, 1)
+word2 = Word(3, 2, 0, 2)
+word3 = Word(5, 1, 0, 3)
+word1._pointers[1], word1._indices = (word2, 1)
+word2._pointers[1], word2._indices = (word1, 1)
+word2._pointers[3], word2._indices = (word3, 2)
+word3._pointers[2], word3._indices = (word2, 3)

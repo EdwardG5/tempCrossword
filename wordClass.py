@@ -16,7 +16,7 @@ class Word:
 
 	# Edward's
 	def __repr__(self):
-		return f"({self._index}, {self._length})"
+		return f"(Index: {self._index}, Length: {self._length}, Chars: {self._chars})"
 
 	# Sean's
 	# def __repr__(self):
