@@ -66,9 +66,7 @@ class Word:
 	# Added for preprocessing
 	# 0 the set attribute. 
 	def clearSet(self):
-		for x in range(self.length()+1):
-			if self._modify[x]:
-				self._pointers[x]._set += 1
+		self._set = 0
 
 	# Whether or not letter x has been assigned a letter or if it is a blank
 	def set(self, x):
