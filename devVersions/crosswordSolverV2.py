@@ -1,10 +1,7 @@
 from nodeClass import *
 from wordClass import *
-from dictToTrie import *
 from index import index
 from queue import LifoQueue
-from fileToList import *
-import sys
 
 #---------------------------------------------------------------------------#
 
@@ -17,7 +14,7 @@ oneSolution = 1
 # root is the root of the trieWrapper - storing words to be matched against (list with index i trie containing words of length i)
 # returns a list of solutions to the wordList 
 # if none exists, 
-def solveHelper(wordList, root):
+def solveHelper(wordList, trieList):
 	
 	# Base case: Success. No more words to match
 	if wordList.empty():
@@ -27,7 +24,7 @@ def solveHelper(wordList, root):
 	# Recursive case
 	else:
 		word = wordList.get(block=False) # currentWord. Next word to be filled in
-		solutions = match(word, 0, root.trie(word.length()), wordList, root) # Pass try of appropriate length
+		solutions = match(word, 0, trieList.trie(word.length()), wordList, trieList) # Pass try of appropriate length
 		# Return wordlist to original state
 		wordList.put(word)
 		return solutions
@@ -105,11 +102,11 @@ def match(word, cL, node, wordList, root):
 
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
-def solve(wordList):
-	root = readyTrieWrapper(dictName) # dictName is a string filename
-	readyWordList(wordList) # set ranks and such insitu
+# iW = infoWrapper
+def solve(wordList, iW):
+	readyWordList(wordList) # set ranks and such in situ
 	wordList = listToLifoQueue(wordList) # convert to stack
-	solutions = solveHelper(wordList, root) 
+	solutions = solveHelper(wordList, iW._tries) 
 	return solutions
 
 #---------------------------------------------------------------------------#
