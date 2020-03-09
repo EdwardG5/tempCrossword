@@ -1,3 +1,11 @@
+#---------------------------------------------------------------------------#
+
+# Let's the file see the files in the parent folder
+import sys
+sys.path.append('..')
+
+#---------------------------------------------------------------------------#
+
 from nodeClass import *
 from wordClass import *
 from index import index
