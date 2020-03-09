@@ -14,8 +14,8 @@ from crosswordSolver import readyWordList
 def match(word, pattern, len):
 	for x in range(len):
 		if word[x] != pattern[x]:
-			return false
-	return true
+			return False
+	return True
 
 def extractAllPatterns(word, length):
 	# Explode into chars
@@ -42,23 +42,23 @@ def listToPatternList(wordList):
 # Add to dict in mass
 def listToPatternDict1(wordList):
 	mDict = dict()
-	time1 = time.time()
+	# time1 = time.time()
 	patterns = listToPatternList(wordList)
-	time2 = time.time()
-	pSize = 0
-	dSize = 0
+	# time2 = time.time()
+	# pSize = 0
+	# dSize = 0
 	for p in patterns:
-		pSize += 1
+		# pSize += 1
 		if p in mDict:
 				mDict[p] += 1
 		else:
 				mDict[p] = 1
-				dSize += 1
-	print(pSize)
-	print(dSize)
-	time3 = time.time()
-	print("P1: ", time2-time1)
-	print("P2: ", time3-time2)
+				# dSize += 1
+	# print(pSize)
+	# print(dSize)
+	# time3 = time.time()
+	# print("P1: ", time2-time1)
+	# print("P2: ", time3-time2)
 	return mDict
 
 
@@ -97,30 +97,30 @@ def patternDictTofreqDict(patternDict):
 	freqDict = {}
 	# Collate results 
 	for x in patternDict:
-		if (len(x), set(x), dict1[x]) not in freqDict:
-				freqDict[(len(x), set(x), dict1[x])] = 1
+		if (len(x), numSet(x), patternDict[x]) not in freqDict:
+				freqDict[(len(x), numSet(x), patternDict[x])] = 1
 		else:
-				freqDict[(len(x), set(x), dict1[x])] += 1
+				freqDict[(len(x), numSet(x), patternDict[x])] += 1
 	return freqDict
 
 # summDict[(len, set)] = (total number of options, total frequency)
 def freqDictTosummDict(freqDict):
 	summDict = {}
 	for x in freqDict:
-		((len, set, num), freq) = (x, freqDict[x])
-		if (len, set) in summDict:
-				(tN, tF) = summDict[(len, set)] 
-				summDict[(len, set)] = (tN+num*freq, tF+freq)
+		((len, numSet, num), freq) = (x, freqDict[x])
+		if (len, numSet) in summDict:
+				(tN, tF) = summDict[(len, numSet)] 
+				summDict[(len, numSet)] = (tN+num*freq, tF+freq)
 		else:
-				summDict[(len, set)] = (num*freq, freq)
+				summDict[(len, numSet)] = (num*freq, freq)
 	return summDict
 
 # summDict[(len, set)] = average number of options to match pattern
 def summDictToavDict(summDict):
 	avDict = {}
 	for x in summDict:
-		(tN, tF) = summ[x]
-		avDict[i] = int(tN/tF)
+		(tN, tF) = summDict[x]
+		avDict[x] = int(tN/tF)
 	return avDict
 
 #---------------------------------------------------------------------------#
@@ -147,19 +147,15 @@ def ranking(wordList):
 # process them. (smallest state space, most quickly eliminate options etc)
 # REQUIRES: all words in input list are initially clear
 def determineOrder(wordList, avDict):
-	wordListPermutations = itertools.permutations(wordList)
-	minRating = ranking(words[0])
-	optimalPerm = words[0]
+	wordListPermutations = list(itertools.permutations(wordList))
+	minRating = ranking(wordListPermutations[0])
+	optimalPerm = wordListPermutations[0]
 	for words in wordListPermutations:
 		rating = ranking(words)
 		if rating < minRating:
 			minRating = rating
 			optimalPerm = words
 	return optimalPerm
-
-# Get all permutations of [1, 2, 3] 
-perm = permutations([1, 2, 3]) 
-	
 
 #---------------------------------------------------------------------------#
 
@@ -179,8 +175,25 @@ def main():
 	print("file -> wordlist: ", time2-time1)
 	print("dict1 generation: ", time3-time2)
 	print("dict2 generation: ", time4-time3)
+	"""
+	Checking that everything works:
+	word1 = Word(4, 1, 0, 1)
+	word2 = Word(3, 2, 0, 2)
+	word3 = Word(5, 1, 0, 3)
+	word1._pointers[1], word1._indices = (word2, 1)
+	word2._pointers[1], word2._indices = (word1, 1)
+	word2._pointers[3], word2._indices = (word3, 2)
+	word3._pointers[2], word3._indices = (word2, 3)
+	words = [word1, word2, word3]
+	wordList = fileToWords("wordLists/dict1k.txt")
+	patternDict = listToPatternDict1(wordList)
+	freqDict = patternDictTofreqDict(patternDict)
+	summDict = freqDictTosummDict(freqDict)
+	avDict = summDictToavDict(summDict)
+	determineOrder(words, avDict)
+	"""
 	
-main()
+
 
 
 
