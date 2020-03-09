@@ -11,10 +11,10 @@ oneSolution = 1
 #---------------------------------------------------------------------------#
 
 # wordList is the list of words remaining to be matched 
-# root is the root of the trieWrapper - storing words to be matched against (list with index i trie containing words of length i)
+# root is the root of the trie - storing words to be matched against
 # returns a list of solutions to the wordList 
 # if none exists, 
-def solveHelper(wordList, trieList):
+def solveHelper(wordList, root):
 	
 	# Base case: Success. No more words to match
 	if wordList.empty():
@@ -24,9 +24,11 @@ def solveHelper(wordList, trieList):
 	# Recursive case
 	else:
 		word = wordList.get(block=False) # currentWord. Next word to be filled in
-		solutions = match(word, 0, trieList.trie(word.length()), wordList, trieList) # Pass try of appropriate length
+		solutions = match(word, 0, root, wordList, root)
+
 		# Return wordlist to original state
 		wordList.put(word)
+		
 		return solutions
 
 # word is the word to be matched against: class word
@@ -38,7 +40,8 @@ def solveHelper(wordList, trieList):
 def match(word, cL, node, wordList, root):
 	# Base case: trie matched against word: terminate
 	if cL == word.length():
-
+		# Node is word
+		if node.word():
 			# Modify node values appropriately
 			solution = node.whichWord()
 			word.setChars([""]+list(solution))
@@ -57,6 +60,10 @@ def match(word, cL, node, wordList, root):
 			# Collision occurs down the line
 			#else:
 			#	return []
+		
+		# Node is not word
+		else:
+			return []
 	
 	# Recursive case
 	else:
@@ -65,7 +72,7 @@ def match(word, cL, node, wordList, root):
 			# Find next starting node
 			nextNode = node.childL(word._chars[cL+1])
 			# No solution
-			if nextNode == None: 
+			if (nextNode == None) or (nextNode.maxLength() < word.length()): 
 				return []
 			# Continue with search
 			else:
@@ -80,7 +87,7 @@ def match(word, cL, node, wordList, root):
 				# Find next starting node
 				nextNode = node.childN(x)
 				# No solution
-				if nextNode == None: 
+				if (nextNode == None) or (nextNode.maxLength() < word.length()): 
 					continue
 				# Continue with search
 				else:
@@ -102,11 +109,11 @@ def match(word, cL, node, wordList, root):
 
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
-# iW = infoWrapper
-def solve(wordList, iW):
-	readyWordList(wordList) # set ranks and such in situ
-	wordList = listToLifoQueue(wordList) # convert to stack
-	solutions = solveHelper(wordList, iW._tries) 
+def solve(wordList, trie):
+	readyWordList(wordList)
+	wordList = listToLifoQueue(wordList)
+	solutions = solveHelper(wordList, root)
 	return solutions
 
 #---------------------------------------------------------------------------#
+
