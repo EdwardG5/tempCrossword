@@ -35,7 +35,7 @@ crosswordV2: Uses separate tries for different length words.
 Alterations:
 
 SolveHelper: 
-- receives trieWrapper instead of trie
+- receives trie list instead of trie
 - selects and passes appropriate trie to match
 
 Match: 
@@ -44,5 +44,20 @@ Match:
 
 Solve:
 - receives a word class list * infoWrapper
+
+#---------------------------------------------------------------------------#
+
+crosswordV3: Uses separate tries for different length words. Does an existence check in solveHelper (after next word is matched, to see if the resulting patterns are possible)
+
+Alterations:
+
+SolveHelper: 
+- receives the patternDict
+
+Match: 
+- same (except for extra parameter passed)
+
+Solve:
+- passes different arguments to solveHelper
 
 #---------------------------------------------------------------------------#

@@ -24,7 +24,7 @@ class Word:
     #    return string
 
 	def string(self):
-		return "".join(self.chars[1::])
+		return "".join(self._chars[1::])
 
 	def length(self):
 		return self._length
@@ -51,13 +51,13 @@ class Word:
 	def undoPropagate(self):
 		for x in range(self.length()+1):
 			if self._modify[x]:
-				self._pointers[x].setChar(self._indices[x], "")
+				self._pointers[x].setChar(self._indices[x], "-")
 
 	# clear (leaving upstream set characters be)
 	def clear(self):
 		for x in range(self.length()+1):
 			if not self._notModify[x]:
-				self.setChar(x, "")
+				self.setChar(x, "-")
 
 	# Added for preprocessing
 	# (Virtually) Set chars of connected words. Just increment #set. 
@@ -73,7 +73,7 @@ class Word:
 
 	# Whether or not letter x has been assigned a letter or if it is a blank
 	def set(self, x):
-		return not self._chars[x] == ""
+		return not self._chars[x] == "-"
 
 	def showPointers(self):
 		print(self._pointers)

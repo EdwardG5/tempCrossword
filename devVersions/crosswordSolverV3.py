@@ -31,10 +31,22 @@ def solveHelper(wordList, trieList, patternDict):
 	
 	# Recursive case
 	else:
+		##################
 		# Check whether solution is possible (check existence in patternDict)
-		for word in wordList:
+		wordListL = []
+		while not wordList.empty():
+			wordListL.append(wordList.get(block=False))
+		for word in wordListL:
 			if word.string() not in patternDict:
+				# Restore list
+				while wordListL:
+					wordList.put(wordListL.pop())
+				# Exit
 				return []
+		# Restore list
+		while wordListL:
+			wordList.put(wordListL.pop())
+		##################
 		# Solution possible
 		word = wordList.get(block=False) # currentWord. Next word to be filled in
 		solutions = match(word, 0, trieList[word.length()], wordList, trieList, patternDict) # Pass try of appropriate length

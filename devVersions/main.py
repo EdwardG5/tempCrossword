@@ -11,6 +11,7 @@ from dictToTrie import listToTrie
 from wordClass import Word
 from crosswordSolverV1 import solve1
 from crosswordSolverV2 import solve2
+from crosswordSolverV3 import solve3
 
 #---------------------------------------------------------------------------#
 
@@ -83,13 +84,24 @@ def correctnessTest():
 	solutions22 = solve2(wordList2, iW)
 	solutions23 = solve2(wordList3, iW)
 
+	print("Checkpoint 4")
+	solutions31 = solve3(wordList1, iW)
+	solutions32 = solve3(wordList2, iW)
+	solutions33 = solve3(wordList3, iW)
+
 	print()
+	
 	print("Solutions 11:", solutions11)
 	print("Solutions 12:", solutions12)
 	print("Solutions 13:", solutions13)
+	
 	print("Solutions 21:", solutions21)
 	print("Solutions 22:", solutions22)
 	print("Solutions 23:", solutions23)
+
+	print("Solutions 31:", solutions31)
+	print("Solutions 32:", solutions32)
+	print("Solutions 33:", solutions33)
 
 
 def main():
