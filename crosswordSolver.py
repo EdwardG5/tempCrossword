@@ -11,7 +11,7 @@ import sys
 # Set whether you want just 1 solution (1 = 1 solution, 0 = all solutions (could be thousands))
 oneSolution = 1
 # Set which dictionary you want to use
-dictName = "Dict.txt"
+dictName = "wordLists/dict1k.txt"
 
 #---------------------------------------------------------------------------#
 
@@ -263,7 +263,7 @@ def hcTest():
 # If you're running this file as a standalone application: 
 
 def main():
-	pass
+	hcTest()
 
-main()
+# main()
 
