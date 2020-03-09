@@ -1,0 +1,32 @@
+These are development versions of crossword. 
+
+All have three main functions: (solveHelper, match, solve)
+
+#---------------------------------------------------------------------------#
+
+Current main crosswordSolver: 
+solve(wordList) => Solutions. 
+word class list -> string list list
+(solutions in same order as argument list (or opposite: not entirely sure))
+This version does not preprocess the list in any way and uses a single trie for all words. 
+
+The development versions take various approaches in attempts to improve processing efficiency. 
+
+#---------------------------------------------------------------------------#
+
+crosswordV2: Uses separate tries for different length words. 
+
+Alterations:
+
+SolveHelper: 
+- receives trieWrapper instead of trie
+- selects and passes appropriate trie to match
+
+Match: 
+- node.word() check removed: must be 
+- maxLength check removed: must be true
+
+Solve:
+- receives a word class list * infoWrapper
+
+#---------------------------------------------------------------------------#
