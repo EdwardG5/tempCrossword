@@ -4,6 +4,10 @@ All have three main functions: (solveHelper, match, solve)
 
 #---------------------------------------------------------------------------#
 
+main.py is a file to test the various crossword versions. 
+
+#---------------------------------------------------------------------------#
+
 Current main crosswordSolver: 
 solve(wordList) => Solutions. 
 word class list -> string list list
@@ -11,6 +15,10 @@ word class list -> string list list
 This version does not preprocess the list in any way and uses a single trie for all words. 
 
 The development versions take various approaches in attempts to improve processing efficiency. 
+
+#---------------------------------------------------------------------------#
+
+crosswordV1: Stripped down version of the current main one (without version suffix)
 
 #---------------------------------------------------------------------------#
 
