@@ -1,6 +1,6 @@
 from tkinter import *
 import string
-from Constants import Constants
+from constants import Constants
 
 # This is linked to an IntVar in app.mainarea via app. Used for global queries
 gridDrawn = False

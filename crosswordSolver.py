@@ -5,6 +5,7 @@ from index import index
 from queue import LifoQueue
 from fileToList import *
 import sys
+from constants import Constants
 
 #---------------------------------------------------------------------------#
 
@@ -177,10 +178,10 @@ def convertWordsToClass(words, locations):
     index = 0
     classes = []
     for i in words:
-        setChars = len(i[3])-i[3].count("-")
+        setChars = len(i[3])-i[3].count(Constants.defaultEmptyChar)
         locations[index] = [i[0],i[1],i[2]]
         classes.append(Word(len(i[3]),0,setChars,index))
-        classes[index].setChars([""]+["" if c == "-" else c for c in i[3]])
+        classes[index].setChars([""]+["" if c == Constants.defaultEmptyChar else c for c in i[3]])
         for j in words:
             if (i != j) and wordsIntersect(i,j): 
                 classes[index].setConstrained(classes[index]._constrained + 1)
@@ -281,5 +282,6 @@ def main():
 	hcTest()
 	tTest()
 
-# main()
+if __name__ == "__main__":
+	main()
 

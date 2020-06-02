@@ -86,7 +86,7 @@ def longestWord(wordList):
 def numSet(pattern):
 	count = 0
 	for x in pattern:
-			if x!= "-":
+			if x!= Constants.defaultEmptyChar:
 					count += 1
 	return count
 

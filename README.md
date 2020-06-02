@@ -32,7 +32,7 @@ python3 display.py
 #---------------------------------------------------------------------------#
 
 Pending issues: 
-1) display is not correctly translating boards into the word structures. 
+1) display is not correctly translating boards into the word structures. : RESOLVED
 2) display is not correctly displaying the found solutions (maybe - unclear since the solutions don't make sense right now: see 1)
 3) The logic flow is right now concentrated in crosswordSolver. It makes more sense to have this in display - or in a separate file calling both GUI and logic controls. Right now e.g. the dictionary is converted into a trie every time submit is hit - this is something that should only be done once. 
 
@@ -41,15 +41,15 @@ Pending issues:
 Work to be done (in addition to bug fixes (see pending issues)): 
 
 GUI:
-- after altering dimensions, let user hit enter rather than having to click submit 
-- after modifying the board, let user hit enter rather than having to click submit 
+- after altering dimensions, let user hit enter rather than having to click submit : RESOLVED
+- after modifying the board, let user hit enter rather than having to click submit : RESOLVED
 (action determined by what area is currently selected)
 - Allow user to select word list used
 - (extension: allow user to upload their own wordlist)
 - allow user to view multiple solutions: prev next buttons allowing them to flip through the set of solutions 
 - display the number of solutions found
-- reset button to clear board of all modifications 
-- title of window is tk not crosswordSolver
+- reset button to clear board of all modifications : RESOLVED
+- title of window is tk not crosswordSolver : RESOLVED
 
 Logic: 
 - Pre-process word list -> decide the best order in which to evaluate them while solving (open problem, best approach not known)

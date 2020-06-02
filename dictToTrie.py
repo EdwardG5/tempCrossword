@@ -1,20 +1,11 @@
 from nodeClass import *
 from index import index
 
-#Converts a trie into a list of words
-def trieToList(root, string = ""):
-    if root._word: strings = [string+root._letter]
-    else: strings = []
-    for node in root._pointers:
-        if node != None:
-            result = trieToList(node,string = string+root._letter)
-            strings += result
-    return strings
-
-#Creates a new trie with every word in a given dictionary, returns root
-def listToTrie(dictionary):
+# Creates a new trie with every word in a given word list. Returns root of a trie. 
+# str list -> node structure (trie)
+def listToTrie(wordList):
     root = Node(None,"",0,False)
-    for word in dictionary:
+    for word in wordList:
         newNode = root
         depth = 0
         for char in word:
@@ -36,8 +27,21 @@ def listToTrie(dictionary):
         newNode._word = True
     return root
 
-#Determines whether a word is in the trie, returns boolean
-def wordInTrie(word,node):
+# Recursively converts a trie into a list of words. Function accepts a prefix representing current trie position.
+# node * str -> str list
+def trieToList(root, prefix = ""):
+    strings = []
+    if root._word: 
+        strings += prefix+root._letter
+    for node in root._pointers:
+        if node != None:
+            result = trieToList(node, prefix=prefix+root._letter)
+            strings += result
+    return strings
+
+# Determines whether a word is in the trie.
+# str * node -> bool
+def wordInTrie(word, node):
     for char in word:
         if node._pointers[index(char)] != None:
             node = node._pointers[index(char)]
@@ -46,7 +50,7 @@ def wordInTrie(word,node):
     return node._word
 
 # Counts the number of nodes in the trie (each representing one letter) + 1 (for the root)
-# Sean's originally did not include the root node (cause of discrepancy)
+# node -> int
 def nodesInTrie(root):
     if root == None:
         return 0
@@ -56,17 +60,19 @@ def nodesInTrie(root):
             count += nodesInTrie(x)
         return count
 
-#Returns a list of the number of words of each length
-def findLens(dictionary):
-    lengths = [0]*max(list(map(len,dictionary)))
-    for word in dictionary: lengths[len(word)-1] += 1
+# Returns a list of the number of words of each length
+# str list -> (int : int) dict
+def findLens(wordList):
+    lengths = {n: 0 for n in range(1+max(list(map(len, wordList))))}
+    for word in wordList: 
+        lengths[len(word)] += 1
     return lengths
 
+# FIX
 def testing():
-    dictionary = ["ab","b","acd"]
-    root = listToTrie(dictionary)
-    print(root)
-    print(root._pointers[0]._pointers[1]._depth, root._pointers[0]._pointers[1]._height, root._pointers[0]._pointers[1]._maxLength)
+    # Write some proper test cases. 
+    # I don't guarantee correct functioning
+    pass
 
-
-#testing()
+if __name__ == "__main__":
+    testing()

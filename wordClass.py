@@ -1,5 +1,7 @@
 # For some reason, I decided to make everything to do with the words 1 indexed
 
+from constants import Constants
+
 class Word:
 	
 	def __init__(self, length, constrained, setChars, index):
@@ -7,7 +9,7 @@ class Word:
 		self._length = length								    # Length of the word
 		self._constrained = constrained						    # The number of characters linked to other characters
 		self._set = setChars									# The number of characters already set
-		self._chars = ["-" for x in range(length+1)] 			# A position for each character in the word + 1 initial blank to allow easy use with depth
+		self._chars = [Constants.defaultEmptyChar for x in range(length+1)] # A position for each character in the word + 1 initial blank to allow easy use with depth
 		self._pointers = [None for x in range(length+1)]		# Pointers to other word who ith character is linked to word's ith character (pointer to word, index in word)
 		self._indices = [0 for x in range(length+1)]			# Indices corresponding to pointers
 		self._rank = 0											# Rank = order in which the words are evaluated, starting at 1. 0 = uninitialised
@@ -51,13 +53,13 @@ class Word:
 	def undoPropagate(self):
 		for x in range(self.length()+1):
 			if self._modify[x]:
-				self._pointers[x].setChar(self._indices[x], "-")
+				self._pointers[x].setChar(self._indices[x], Constants.defaultEmptyChar)
 
 	# clear (leaving upstream set characters be)
 	def clear(self):
 		for x in range(self.length()+1):
 			if not self._notModify[x]:
-				self.setChar(x, "-")
+				self.setChar(x, Constants.defaultEmptyChar)
 
 	# Added for preprocessing
 	# (Virtually) Set chars of connected words. Just increment #set. 
@@ -73,7 +75,7 @@ class Word:
 
 	# Whether or not letter x has been assigned a letter or if it is a blank
 	def set(self, x):
-		return not self._chars[x] == "-"
+		return not self._chars[x] == Constants.defaultEmptyChar
 
 	def showPointers(self):
 		print(self._pointers)
