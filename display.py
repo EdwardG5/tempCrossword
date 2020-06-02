@@ -131,6 +131,9 @@ class MainArea(Canvas):
 		# Binding virtual event for arrow navigation on grid
 		self.event_add("<<arrow>>", "<Left>", "<Right>", "<Up>", "<Down>")
 
+		# Add binding for resize event
+		self.bind("<Configure>", lambda event: self._resize())
+
 		# All of the below attributes are completely wiped + reset when drawBoard() is called. 
 		# They are written in the current forms below in order to illustrate and explain their use. 
 
@@ -174,6 +177,8 @@ class MainArea(Canvas):
 	# Removes all keyboard and mouse bindings.
 	def _remove_bindings(self):
 		for b in self.bind():
+			if b == '<Configure>':
+				continue
 			self.unbind(b)
 
 	# Allows user to navigate on grid using arrow keys. 
@@ -238,8 +243,7 @@ class MainArea(Canvas):
 		row, col = self.selected[0], self.selected[1]
 		self._toggle_cell(row, col)
 
-	# On double click, determines relevant square (if any) + toggles color + removes focus
-	# (Note: though focus is removed, self.selected is not reset)
+	# Determines relevant square (if any) + adds/removes focus
 	def _canvas_on_click(self, event):
 		self.focus_set() # Moves focus to canvas (doesn't happen automatically - not considered an input widget)
 		clickedSquare = self._clicked_square(event)
@@ -255,12 +259,10 @@ class MainArea(Canvas):
 		else:
 			self._remove_focus()
 
-	# On double click, determines relevant square (if any) + toggles color + removes focus
-	# (Note: though focus is removed, self.selected is not reset)
+	# Determines relevant square (if any) + toggles color
 	def _canvas_on_2click(self, event):
 		clickedSquare = self._clicked_square(event)
 		if clickedSquare:
-			self._remove_focus()
 			self.selected = clickedSquare
 			self._toggle_selected()
 
@@ -309,6 +311,29 @@ class MainArea(Canvas):
 	def _destroy(self):
 		for item in self.find_all():
 			self.delete(item)
+
+	# Handler for resize event. 
+	def _resize(self):
+		print("resizing window")
+		if self.gridDrawn.get():
+			# Store initial configuration
+			iselected = self.selected
+			istate = self['state']
+			iwidth = self.width
+			iheight = self.width
+			igrid = self.getRepresentation()
+			# Reset canvas
+			self.clear()
+			# Redraw board
+			self.drawBoard(width=iwidth, height=iheight, fill=igrid)
+			# Redo configurations
+			if iselected:
+				self.selected = (iselected[0], iselected[1], self.squareColors[0][1])
+				self._add_focus()
+			if istate == 'normal':
+				self.enable()
+			elif istate == 'disabled':
+				self.disable()
 
 	# Destroy bindings + make letters gray
 	def disable(self):
