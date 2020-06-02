@@ -1,5 +1,6 @@
 from tkinter import *
 import string
+from helpers import printGrid
 
 # This is linked to an IntVar in app.mainarea via app. Used for global queries
 gridDrawn = False
@@ -12,7 +13,7 @@ class Constants:
 	# Used to represent an empty white cell
 	defaultEmptyChar = " "
 	# Used to represent a blocked black cell
-	defaultBlockedChar = "-" 
+	defaultBlockedChar = "#" 
 
 class SideBar(Frame):
 
@@ -314,13 +315,12 @@ class MainArea(Canvas):
 
 	# Handler for resize event. 
 	def _resize(self):
-		print("resizing window")
 		if self.gridDrawn.get():
 			# Store initial configuration
 			iselected = self.selected
 			istate = self['state']
 			iwidth = self.width
-			iheight = self.width
+			iheight = self.height
 			igrid = self.getRepresentation()
 			# Reset canvas
 			self.clear()
@@ -328,7 +328,8 @@ class MainArea(Canvas):
 			self.drawBoard(width=iwidth, height=iheight, fill=igrid)
 			# Redo configurations
 			if iselected:
-				self.selected = (iselected[0], iselected[1], self.squareColors[0][1])
+				row, col = iselected[0], iselected[1]
+				self.selected = (row, col, self.squareColorIds[row][col])
 				self._add_focus()
 			if istate == 'normal':
 				self.enable()
@@ -428,8 +429,9 @@ class MainArea(Canvas):
 		for row in range(self.height):
 			for col in range(self.width):
 				grid[row][col] = self.letters[row][col]
-				if self.squareColors:
+				if self.squareColors[row][col]:
 					grid[row][col] = Constants.defaultBlockedChar
+		return grid
 
 class BottomBar(Frame):
 
