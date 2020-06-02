@@ -289,7 +289,7 @@ class MainArea(Canvas):
 			if self.squareColors[row][col]:
 				self._toggle_selected()
 			# Add letter to cell
-			self._add_letter(event.char, row, col)
+			self._add_letter(event.char.lower(), row, col)
 
 	# Removes focus from any grid square and moves focus to the canvas at large
 	def _esc(self, event):
