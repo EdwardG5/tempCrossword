@@ -1,6 +1,17 @@
+"""
+I have appended FIX to areas that need attention. 
+
+I have added DEV to areas which are added on a whim to casually implement quickly desired functionality with little regard for precise mechanics/visual appeal.
+
+"""
+
 from tkinter import *
 import string
 from constants import Constants
+
+# DEV -----------------
+import grid
+# DEV -----------------
 
 # This is linked to an IntVar in app.mainarea via app. Used for global queries
 gridDrawn = False
@@ -537,6 +548,11 @@ class Application(Tk):
 
 		# Initialize appearance of sidebar
 		self.sidebar._clear()
+
+		# DEV ----------------
+		self.printGrid = Button(text="Print Grid", command=lambda:print(repr(self.mainarea.getRepresentation())))
+		self.printGrid.grid()
+		# DEV ----------------
 
 	def init_appearance(self, widgets):
 
