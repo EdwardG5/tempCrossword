@@ -5,12 +5,14 @@ Crossword solver with GUI allowing users to create custom board. Multi-language 
 
 Files: 
 - display: GUI interface
+- displayVSEAN: Legacy GUI interface. 
 - crosswordSolver.py: algorithmic brains. # Note: solution list is backwards relative to given list
 - wordClass: data structure to represent words
 - nodeClass: data structure to build tries
 - fileToList: method to read words from file. Called from crosswordSolver
 - index: calculate index in pointer lists (wordClass) from ascii value
 - hardCodedExamples: boards -> word structures hardcoded 
+- constant.py: Constants class containing GUI settings, as well as board settings (e.g. character representing empty space, blocked). 
 
 #---------------------------------------------------------------------------#
 

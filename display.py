@@ -1,19 +1,9 @@
 from tkinter import *
 import string
-from helpers import printGrid
+from Constants import Constants
 
 # This is linked to an IntVar in app.mainarea via app. Used for global queries
 gridDrawn = False
-
-class Constants:
-	# Font used throughout the application
-	font = ('arial', 20)
-	# Default button width
-	buttonWidth = 10 
-	# Used to represent an empty white cell
-	defaultEmptyChar = " "
-	# Used to represent a blocked black cell
-	defaultBlockedChar = "#" 
 
 class SideBar(Frame):
 
