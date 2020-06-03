@@ -445,8 +445,8 @@ class BottomBar(Frame):
 		# self['bg'] = 'green'
 
 		# Create attributes
-		self.prev = Button(self, text='Prev', command=self.master.prev)
-		self.next = Button(self, text='Next', command=self.master.next)
+		self.prevB = Button(self, text='Prev', command=self.master.prev)
+		self.nextB = Button(self, text='Next', command=self.master.next)
 		self.currentSolution = 0
 		self.totalSolutions = 0
 		self.text = StringVar()
@@ -454,8 +454,8 @@ class BottomBar(Frame):
 		self.label = Label(self, textvariable=self.text)
 
 		# Place on screen
-		self.prev.grid(row=0, column=1, sticky='nesw', pady=20, padx=0)
-		self.next.grid(row=0, column=2, sticky='nesw', pady=20, padx=0)
+		self.prevB.grid(row=0, column=1, sticky='nesw', pady=20, padx=0)
+		self.nextB.grid(row=0, column=2, sticky='nesw', pady=20, padx=0)
 		self.label.grid(row=0, column=4, sticky='nesw', pady=20, padx=0)
 		self.grid_rowconfigure(0, weight=1)
 		self.grid_columnconfigure(0, weight=1)
@@ -479,7 +479,7 @@ class BottomBar(Frame):
 	def _init_appearance(self):
 
 		# Global settings 
-		widgets = [self.prev, self.next, self.label]
+		widgets = [self.prevB, self.nextB, self.label]
 		self.master.init_appearance(widgets)
 
 		# Local settings
@@ -493,15 +493,15 @@ class BottomBar(Frame):
 			self.currentSolution = 0
 			self.totalSolutions = 0
 			self._update_text()
-			self.prev['state'] = 'disabled'
-			self.next['state'] = 'disabled'
+			self.prevB['state'] = 'disabled'
+			self.nextB['state'] = 'disabled'
 			self.label['state'] = 'disabled'
 		else:
 			self.currentSolution = 1
 			self.totalSolutions = newTotal
 			self._update_text()
-			self.prev['state'] = 'normal'
-			self.next['state'] = 'normal'
+			self.prevB['state'] = 'normal'
+			self.nextB['state'] = 'normal'
 			self.label['state'] = 'normal'
 
 	def prev(self):
@@ -593,10 +593,10 @@ class Application(Tk):
 	
 	# FIX
 	def prev(self):
-		self.bottombar.next()
+		self.bottombar.prev()
 	# FIX
 	def next(self):
-		self.bottombar.prev()
+		self.bottombar.next()
 
 app = Application()
 
