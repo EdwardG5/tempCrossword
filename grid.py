@@ -52,10 +52,10 @@ def notBlocked(square):
 	return square != Constants.defaultBlockedChar
 # Square not part of across
 def nPOA(grid, row, col):
-	return len(newGrid[row][col]) == 0 or (len(newGrid[row][col]) == 1 and newGrid[row][col][0][1] != "Across")
+	return len(grid[row][col]) == 0 or (len(grid[row][col]) == 1 and grid[row][col][0][1] != "Across")
 # Square not part of down
 def nPOD(grid, row, col):
-	return len(newGrid[row][col]) == 0 or (len(newGrid[row][col]) == 1 and newGrid[row][col][0][1] != "Down")
+	return len(grid[row][col]) == 0 or (len(grid[row][col]) == 1 and grid[row][col][0][1] != "Down")
 # Next square across is clear
 def nA(grid, row, col):
 	try:
@@ -154,12 +154,6 @@ def gridToWordClassList(grid):
 # Convert a list of word class objects into a char grid
 def wordClassListToGrid(wL):
 	pass
-
-
-
-
-
-
 
 if __name__ == "__main__":
 	

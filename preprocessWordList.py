@@ -4,6 +4,7 @@ from fileToList import fileToWords
 import os
 import time
 from crosswordSolver import readyWordList
+from constants import Constants
 
 #---------------------------------------------------------------------------#
 

@@ -1,4 +1,4 @@
-from index import index 
+
 
 class Node: 
 
@@ -13,6 +13,31 @@ class Node:
 
 	def __repr__(self):
 		return f"({self._letter},{self._word})"
+
+	def __iter__(self):
+		return iter(self._pointers)
+
+	# Raises exception/Returns None on failure
+	def __getitem__(self, i):
+		if isinstance(i, int):
+			return self._pointers[i]
+		elif isinstance(i, str):
+			return self._pointers[self._charToInt(i)]
+		else:
+			raise TypeError("Node indices must be int or char")
+	
+	def __setitem__(self, i, value):
+		if isinstance(i, int):
+			self._pointers[i] = value
+		elif isinstance(i, str):
+			self._pointers[self._charToInt(i)] = value
+		else:
+			raise TypeError("Node indices must be int or char")
+	
+	# Calculates an index from a corresponding char (e.g. 'a' = 0)
+	@staticmethod
+	def _charToInt(letter):
+		return ord(letter.lower())-97
 
 	# Return whether current node is a word: True/False
 	def word(self):
@@ -35,30 +60,29 @@ class Node:
 
 	# Return the node's height
 	def depth(self):
-		return node._depth
+		return self._depth
 
 	# Return the node's height
 	def height(self):
-		return node._height
+		return self._height
 
 	# Return max word length on node's path
 	def maxLength(self):
 		return self._maxLength
 
-	# Returns None on failure
-	def childL(self, letter):
-		return self._pointers[index(letter)]
+if __name__ == "__main__":
+	# Test indexing
+	n = Node(None, 'a', 1, False)
+	n['a'] = n
+	n[1] = n
+	assert(n[0] == n['a'])
+	assert(n[1] == n['b'])
+	print("Success: all tests passed")
 
-	# Returns None on failure
-	def childN(self, number):
-		return self._pointers[number]
+	# FIXME: 
+	# Need to add far more comprehensive tests.
 
-	# We need a bunch of update methods 
-	# Need to refactor Edward's + Sean's code to use update methods rather than direct dereferencing
 
-def testing():
-	dictionary = ["a","ba","bad","abad","ad","caba","add","cad", "addda"]
-	root = listToTrie5(dictionary)
-	print(root._pointers[0]._pointers[1]._pointers[0]._pointers[3].whichWord())
 
-#testing()
+
+

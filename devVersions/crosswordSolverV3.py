@@ -8,7 +8,6 @@ sys.path.append('..')
 
 from nodeClass import *
 from wordClass import *
-from index import index
 from readyWordClassList import readyWordList, listToLifoQueue
 
 #---------------------------------------------------------------------------#
@@ -88,7 +87,7 @@ def match(word, cL, node, wordList, root, patternDict):
 		# Next character set
 		if word.set(cL+1): 
 			# Find next starting node
-			nextNode = node.childL(word._chars[cL+1])
+			nextNode = node[word._chars[cL+1]]
 			# No solution
 			if nextNode == None: 
 				return []
@@ -101,9 +100,7 @@ def match(word, cL, node, wordList, root, patternDict):
 		else:
 			# Iterate through all 26 possibilities (casing on whether or not they are long enough to be an option)
 			solutions = []
-			for x in range(26):
-				# Find next starting node
-				nextNode = node.childN(x)
+			for nextNode in node:
 				# No solution
 				if nextNode == None: 
 					continue
