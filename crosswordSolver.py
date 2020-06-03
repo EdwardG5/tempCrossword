@@ -67,7 +67,7 @@ def match(word, cL, node, wordList, root):
 		if node.word():
 			# Modify node values appropriately
 			solution = node.whichWord()
-			word.setChars([""]+list(solution))
+			word.setChars([Constants.defaultEmptyChar]+list(solution))
 			# Propagate changes to other connected nodes
 			word.propagate()
 			# Find solutions to remainder of wordList
@@ -181,7 +181,7 @@ def convertWordsToClass(words, locations):
         setChars = len(i[3])-i[3].count(Constants.defaultEmptyChar)
         locations[index] = [i[0],i[1],i[2]]
         classes.append(Word(len(i[3]),0,setChars,index))
-        classes[index].setChars([""]+["" if c == Constants.defaultEmptyChar else c for c in i[3]])
+        classes[index].setChars([Constants.defaultEmptyChar]+[Constants.defaultEmptyChar if c == Constants.defaultEmptyChar else c for c in i[3]])
         for j in words:
             if (i != j) and wordsIntersect(i,j): 
                 classes[index].setConstrained(classes[index]._constrained + 1)
@@ -211,7 +211,7 @@ def main0():
 	# 	dictionary[x] = dictionary[x].lower()
 	# print(len(dictionary))
 	# root = listToTrie(dictionary)
-	words = [[0, 0, 0, '---'], [2, 0, 1, '---']]
+	words = [[0, 0, 0, 3*Constants.defaultEmptyChar], [2, 0, 1, 3*Constants.defaultEmptyChar]]
 	wordList = convertWordsToClass(words, {})
 	solutions = solve(wordList)
 	print(solutions)

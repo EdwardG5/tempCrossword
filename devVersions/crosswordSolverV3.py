@@ -66,7 +66,7 @@ def match(word, cL, node, wordList, root, patternDict):
 
 			# Modify node values appropriately
 			solution = node.whichWord()
-			word.setChars([""]+list(solution))
+			word.setChars([Constants.defaultEmptyChar]+list(solution))
 			# Propagate changes to other connected nodes
 			word.propagate()
 			# Find solutions to remainder of wordList
