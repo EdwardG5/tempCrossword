@@ -1,4 +1,3 @@
-from wordClass import Word
 import itertools
 from fileToList import fileToWords
 import os

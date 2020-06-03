@@ -165,6 +165,11 @@ def solve(wordList):
 
 #---------------------------------------------------------------------------#
 
+# I can't for the life of me figure out what these two functions are supposed to do.
+# The only place they are called from is themselves and main0 below. (i.e. deleting them
+# wouldn't break anything). I'm holding off on deleting them until later (maybe they
+# at some point start making sense).
+
 def wordsIntersect(word1, word2):
     if word1[2] == word2[2]: return False
     right = (word1 if word1[2]==0 else word2)

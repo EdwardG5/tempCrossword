@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"AREPL.pythonPath": "python3",
+		"search.followSymlinks": false
+	}
+}
