@@ -216,7 +216,7 @@ def main0():
 	words = [[0, 0, 0, 3*Constants.defaultEmptyChar], [2, 0, 1, 3*Constants.defaultEmptyChar]]
 	wordList = convertWordsToClass(words, {})
 	solutions = solve(wordList)
-	print(solutions)
+	assert(solutions == [['act', 'act']])
 
 def gridTest():
 	dictionary = ["ba", "abad", "aba", "adb"]
@@ -243,7 +243,7 @@ def gridTest():
 	words = [word1, word2, word3, word4]
 	# Solve grid crossword
 	solutions = solve(words)
-	print(nodesInTrie(root))
+	assert(nodesInTrie(root) == 9)
 
 def hcTest():
 	word1 = Word(2, 2, 0, 1)
@@ -260,7 +260,7 @@ def hcTest():
 	word4._pointers[2], word4._indices[2] = (word3, 1)
 	wordList = [word1, word2, word3, word4]
 	solutions = solve(wordList)
-	print(solutions)
+	assert(solutions == [['am', 'me', 'me', 'am']])
 
 def tTest():
 	word41 = Word(4, 1, 0, 1)
@@ -272,7 +272,7 @@ def tTest():
 	word43._pointers[2], word43._indices[2] = (word42, 3)
 	wordList3 = [word41, word42, word43]
 	solutions13 = solve(wordList3)
-	print(solutions13[0])
+	assert(solutions13[0] == ['other', 'act', 'able'])
 
 #---------------------------------------------------------------------------#
 
@@ -283,6 +283,7 @@ def main():
 	gridTest()
 	hcTest()
 	tTest()
+	print("Success: All tests passed")
 
 if __name__ == "__main__":
 	main()
