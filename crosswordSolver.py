@@ -8,16 +8,15 @@ from readyWordClassList import setRanks, readyWordList
 #---------------------------------------------------------------------------#
 
 # Set whether you want just 1 solution (1 = 1 solution, 0 = all solutions (could be thousands))
-oneSolution = 1
+oneSolution = 0
 # Set which dictionary you want to use
 dictName = "wordLists/dict1k.txt"
 
 #---------------------------------------------------------------------------#
 
 # wordList is the list of words remaining to be matched 
-# root is the root of the trie - storing words to be matched against
-# returns a list of solutions to the wordList 
-# if none exists, 
+# root is the root of the trie (varying lengths) - storing words to be matched against
+# wordClass list * trie -> str list list
 def solveHelper(wordList, root):
 	
 	# Base case: Success. No more words to match
@@ -35,11 +34,11 @@ def solveHelper(wordList, root):
 		
 		return solutions
 
-# word is the word to be matched against: class word
-# cL is the index, int, of the next letter to be matched
-# node is the current position in the trie
+# word : wordClass is the word to be matched against
+# cL : int is the index, int, of the next letter to be matched
+# node : trie is the current position in the trie
 # wordList is the remaining set of words to match 
-# root is the root of the trie (to pass onwards)
+# root : trie is the base node of the trie (to pass onwards)
 # Solution lists contain what the current word is 
 def match(word, cL, node, wordList, root):
 	# Base case: trie matched against word: terminate
@@ -112,7 +111,9 @@ def match(word, cL, node, wordList, root):
 # Success: LifoQueue * trie -> string list list
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
 # Note: solution list is backwards relative to given list
+# wordClass list -> str list list
 def solve(wordList):
+	global dictName
 	root = listToTrie(fileToWordList(dictName))
 	readyWordList(wordList)
 	wordList.reverse() # convert to stack
@@ -163,7 +164,7 @@ def hcTest():
 	word4._pointers[2], word4._indices[2] = (word3, 1)
 	wordList = [word1, word2, word3, word4]
 	solutions = solve(wordList)
-	assert(solutions == [['am', 'me', 'me', 'am']])
+	assert(solutions[0] == ['am', 'me', 'me', 'am'])
 
 def tTest():
 	word41 = Word(4, 1, 0, 1)

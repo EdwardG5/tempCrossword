@@ -12,6 +12,7 @@ E.g:
 
 from constants import Constants
 from copy import copy
+from wordClass import Word
 
 """
 Option with more whitespace: 
@@ -147,9 +148,117 @@ def startIdentifiers(grid):
 					index += 1
 	return newGrid
 
+# Identify the squares starting words
+# char list list -> (char OR int) list list
+def startDict(grid):
+	index = 1
+	d = {}
+	newGrid = removeLetters(grid, replace=[])
+	height, width = len(newGrid), len(newGrid[0])
+	for row in range(height):
+		for col in range(width):
+			if notBlocked(newGrid[row][col]):
+				startOfAcross = False
+				startOfDown = False
+				# Across
+				if (col == 0 or lB(newGrid, row, col)) and nA(newGrid, row, col):
+					startOfAcross = True
+					d[(index, "Across")] = (row, col)
+				# Down
+				if (row == 0 or uB(newGrid, row, col)) and nD(newGrid, row, col):
+					startOfDown = True
+					d[(index, "Down")] = (row, col)
+				if startOfAcross or startOfDown:
+					index += 1
+	return d
+
+# Count the length of the word starting at row, col, going in direction dire
+# grid : any type of grid
+def gLen(grid, dire, row, col):
+	count = 0
+	try:
+		while grid[row][col] != Constants.defaultBlockedChar:
+			count += 1
+			if dire == "Down":
+				row += 1
+			elif dire == "Across":
+				col += 1
+	except:
+		pass
+	return count
+
+# Count the length of the word starting at row, col, going in direction dire
+# grid : grid produced by wordIdentifiers
+def gConstrained(grid, dire, row, col):
+	count = 0
+	try:	
+		while grid[row][col] != Constants.defaultBlockedChar:
+			if len(grid[row][col]) == 2:
+				count += 1
+			if dire == "Down":
+				row += 1
+			elif dire == "Across":
+				col += 1
+	except:
+		pass
+	return count
+
+# Get the index of a perpendicular word by going backwards in the direction dire
+# grid : any type of grid
+def getIndexBackwards(grid, dire, row, col):
+	index = 0
+	try:
+		while grid[row][col] != Constants.defaultBlockedChar:
+			index += 1
+			if dire == "Down":
+				row -= 1
+			elif dire == "Across":
+				col -= 1
+	except:
+		pass
+	return index
+
 # Convert a grid into a list of fully linked word class objects
+# str list list -> wordClass list
 def gridToWordClassList(grid):
-	pass
+	wI = wordIdentifiers(grid) 	# wordIdentifiers [ "#", [(1, "Across")], [(1, "Across"), (2, "Down")], "#", ...
+	sD = startDict(grid)		# { (1, "Across") : (row, col), (2, "Down") : (row, col), ... }
+	wD = {}						# { (1, "Across") : wordClass object, ... }
+	wIndex = 0					# ith created word
+	for k, v in sD.items():
+		row, col = sD[k]
+		dire = k[1]
+		wD[k] = Word(gLen(grid, dire, row, col), gConstrained(wI, dire, row, col), 0, wIndex)
+		wIndex += 1
+	for k, v in wD.items():
+		row, col = sD[k]
+		dire = k[1]
+		length = gLen(grid, dire, row, col)
+		index = 1
+		try:
+			while grid[row][col] != Constants.defaultBlockedChar:
+				if len(wI[row][col]) == 2:
+					words = copy(wI[row][col])
+					words.remove(k)
+					otherDire = "Across" if dire == "Down" else "Down"
+					print('I"m here:', wD[words[0]])
+					v._pointers[index], v._indices[index] = (wD[words[0]], getIndexBackwards(grid, otherDire, row, col))
+				if dire == "Down":
+					row += 1
+				elif dire == "Across":
+					col += 1
+				index += 1
+		except:
+			pass
+	return list(wD.values())
+
+example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
+
+wordClassList = gridToWordClassList(example1)
+
+from crosswordSolver import solve
+solutions = solve(wordClassList)
+
 
 # Convert a list of word class objects into a char grid
 def wordClassListToGrid(wL):
@@ -189,6 +298,10 @@ if __name__ == "__main__":
 	assert(wordIdentifiers(fullNYT) == fullNYTWordIdentifiers)
 	assert(startIdentifiers(fullNYT) == fullNYTStartIdentifiers)
 	
+	wordClassList = gridToWordClassList(example1)
+	solutions = solve(wordClassList)
+	print("Yay : )")
+
 	print("Success: All tests passed")
 
 
