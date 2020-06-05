@@ -1,2 +1,0 @@
-class DictError(Exception):
-	pass
