@@ -1,5 +1,5 @@
 import itertools
-from fileToList import fileToWords
+from helpers import fileToWordList
 import os
 import time
 from crosswordSolver import readyWordList
@@ -159,10 +159,32 @@ def determineOrder(wordList, avDict):
 
 #---------------------------------------------------------------------------#
 
+from trie import listToTrie
+
+# Store various analysis parameters of a word list in one neat structure
+# E.g. pattern dict, average frequency dict, tries of different lengths
+class infoWrapper:
+	# word list : string list
+	def __init__(self, wordList):
+		# sort by length
+		wordList.sort(key=len)
+		self._wordList = wordList
+		self._patternDict = listToPatternDict2(wordList)
+		self._avDict = summDictToavDict(freqDictTosummDict(patternDictTofreqDict(self._patternDict)))
+		self._tries = [None] + [listToTrie(words) for key, words in itertools.groupby(wordList, len)]
+
+# Filename -> InfoWrapper
+def createInfoWrapper(dictName):
+	# load word list
+	dictionary = fileToWordList(dictName)
+	return infoWrapper(dictionary)
+
+#---------------------------------------------------------------------------#
+
 # Lets test run how long this would take on an actual dictionary
 def main():
 	time1 = time.time()
-	words = fileToWords("wordLists/dict10k.txt")
+	words = fileToWordList("wordLists/dict10k.txt")
 	time2 = time.time()
 	print("First part done")
 	dict1 = listToPatternDict1(words)
@@ -185,7 +207,7 @@ def main():
 	word2._pointers[3], word2._indices = (word3, 2)
 	word3._pointers[2], word3._indices = (word2, 3)
 	words = [word1, word2, word3]
-	wordList = fileToWords("wordLists/dict1k.txt")
+	wordList = fileToWordList("wordLists/dict1k.txt")
 	patternDict = listToPatternDict1(wordList)
 	freqDict = patternDictTofreqDict(patternDict)
 	summDict = freqDictTosummDict(freqDict)
