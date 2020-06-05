@@ -1,10 +1,9 @@
 import unittest
-from nodeClass import Node
 from timeit import timeit
-from dictToTrie import listToTrie, trieToList, wordInTrie, nodesInTrie
+from trie import listToTrie, trieToList, wordInTrie, nodesInTrie
 # Verify that node indexing and equality comparison has been implemented correctly
 
-class TestDictToTrie(unittest.TestCase):
+class TestTrie(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

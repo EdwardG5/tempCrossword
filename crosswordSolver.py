@@ -1,8 +1,7 @@
 from wordClass import *
-from dictToTrie import nodesInTrie, listToTrie
-from nodeClass import *
+from trie import nodesInTrie, listToTrie
 from queue import LifoQueue
-from fileToList import *
+from helpers import fileToWordList
 import sys
 from constants import Constants
 
@@ -139,7 +138,7 @@ def readyWordList(wordList):
 # e.g. dictName = "Dict.txt"
 # Takes a dictionary name and returns the root of a trie storing dictionary
 def readyTrie(dictName):
-	dictionary = fileToWords(dictName)
+	dictionary = fileToWordList(dictName)
 	for x in range(len(dictionary)):
 		dictionary[x] = dictionary[x].lower()
 	root = listToTrie(dictionary)
@@ -208,7 +207,7 @@ def printNSolutions(solutions):
 #---------------------------------------------------------------------------#
 
 def main0():
-	# dictionary = fileToWords("Dict.txt")
+	# dictionary = fileToWordList("Dict.txt")
 	# for x in range(len(dictionary)):
 	# 	dictionary[x] = dictionary[x].lower()
 	# print(len(dictionary))
@@ -220,7 +219,7 @@ def main0():
 
 def gridTest():
 	dictionary = ["ba", "abad", "aba", "adb"]
-	# dictionary = fileToWords("SwedDict.txt") # Modify which dictionary you want to use
+	# dictionary = fileToWordList("SwedDict.txt") # Modify which dictionary you want to use
 	# Make sure entries are properly formatted
 	for x in range(len(dictionary)):
 		dictionary[x] = dictionary[x].lower()

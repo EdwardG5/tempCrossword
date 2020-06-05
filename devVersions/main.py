@@ -6,8 +6,8 @@ sys.path.append('..')
 
 #---------------------------------------------------------------------------#
 
-from infoWrapperClass import createInfoWrapper
-from dictToTrie import listToTrie
+from preprocessWordList import createInfoWrapper
+from trie import listToTrie
 from wordClass import Word
 from crosswordSolverV1 import solve1
 from crosswordSolverV2 import solve2

@@ -39,7 +39,7 @@ SolveHelper:
 - selects and passes appropriate trie to match
 
 Match: 
-- node.word() check removed: must be 
+- node.word check removed: must be 
 - maxLength check removed: must be true
 
 Solve:

@@ -6,7 +6,6 @@ sys.path.append('..')
 
 #---------------------------------------------------------------------------#
 
-from nodeClass import *
 from wordClass import *
 from readyWordClassList import readyWordList, listToLifoQueue
 

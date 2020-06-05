@@ -51,11 +51,3 @@ def nodesInTrie(root):
         for x in root:
             count += nodesInTrie(x)
         return count
-
-# Returns a list of the number of words of each length
-# str list -> (int : int) dict
-def findLens(wordList):
-    lengths = {n: 0 for n in range(1+max(list(map(len, wordList))))}
-    for word in wordList: 
-        lengths[len(word)] += 1
-    return lengths
