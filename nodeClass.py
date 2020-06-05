@@ -3,7 +3,7 @@ class Node:
 	def __init__(self, parent, letter, word):
 		self._parent = parent			# Pointer to parent
 		self._letter = letter			# Current letter
-		self._word = word 				# Bool (Yes or no)
+		self.word = word 				# Bool (Yes or no)
 		# Pointers to other child nodes
 		self._pointers = [None for x in range(26)]
 		if parent:						# Current depth (first letter is depth = 1)
@@ -16,7 +16,7 @@ class Node:
 		self._update_parent()				# Update height and maxLength of parent
 
 	def __repr__(self):
-		return f"({self._letter},{self._word})"
+		return f"({self._letter},{self.word})"
 
 	def __iter__(self):
 		return iter(self._pointers)
@@ -41,7 +41,7 @@ class Node:
 	def __eq__(self, other):
 		# if other check asserts that other != None
 		if other:
-			attrs = ["_letter", "_depth", "_word", "_height", "_maxLength"]
+			attrs = ["_letter", "_depth", "word", "_height", "_maxLength"]
 			if all(getattr(self, attr) == getattr(other, attr) for attr in attrs):
 				return all(self[i] == other[i] for i in range(26))
 		return False
@@ -61,10 +61,6 @@ class Node:
 	@staticmethod
 	def _charToInt(letter):
 		return ord(letter.lower())-97
-
-	# Return whether current node is a word: True/False
-	def word(self):
-		return self._word
 
 	# Return word represented by node.
 	def whichWord(self):

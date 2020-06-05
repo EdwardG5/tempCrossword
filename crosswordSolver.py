@@ -63,7 +63,7 @@ def match(word, cL, node, wordList, root):
 	# Base case: trie matched against word: terminate
 	if cL == word.length():
 		# Node is word
-		if node.word():
+		if node.word:
 			# Modify node values appropriately
 			solution = node.whichWord()
 			word.setChars([Constants.defaultEmptyChar]+list(solution))

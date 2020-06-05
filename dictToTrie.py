@@ -8,7 +8,7 @@ def insertWordInTrie(root, word):
 	if root[char] == None:
 		root[char] = Node(root, char, False)
 	if len(word) == 1:
-		root[char]._word = True
+		root[char].word = True
 	else:
 		insertWordInTrie(root[char], word[1:])
 
@@ -24,7 +24,7 @@ def listToTrie(wordList):
 # node * str -> str list
 def trieToList(root, prefix=""):
     strings = []
-    if root._word: 
+    if root.word: 
         strings.append(prefix+root._letter)
     for node in root:
         if node:
@@ -40,7 +40,7 @@ def wordInTrie(word, node):
             node = node[char]
         else:
             return False
-    return node._word
+    return node.word
 
 # Counts the number of nodes in the trie (each representing one letter) + 1 (for the root)
 # node -> int
