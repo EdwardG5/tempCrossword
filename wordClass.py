@@ -116,6 +116,7 @@ class Word:
 	def numSet(self):
 		return self._set
 
+# Used for initializeModify and initialiseNotModify
 # -1 = w1 < w2, 0 = w1 = w2, 1 = w1 > w2
 def compareRanks(word1, word2):
 	r1 = word1.getRank()

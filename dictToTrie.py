@@ -1,39 +1,33 @@
-from nodeClass import *
+from nodeClass import Node
 
-# Creates a new trie with every word in a given word list. Returns root of a trie. 
+# (Helper for listToTrie)
+# Insert one word into a trie structure. Modifies in place.
+# node structure * str -> None
+def insertWordInTrie(root, word):
+	char = word[0]
+	if root[char] == None:
+		root[char] = Node(root, char, False)
+	if len(word) == 1:
+		root[char]._word = True
+	else:
+		insertWordInTrie(root[char], word[1:])
+
+# Creates a new trie with every word in a given word list. Returns root of a trie.
 # str list -> node structure (trie)
 def listToTrie(wordList):
-    root = Node(None,"",0,False)
-    for word in wordList:
-        newNode = root
-        depth = 0
-        for char in word:
-            depth += 1
-            if newNode[char] == None:
-                newNode[char] = Node(newNode,char,depth,False)
-                newNode = newNode[char]
-                testNode = newNode._parent
-                while testNode != root:
-                    testNode._height = testNode._height
-                    for node in testNode:
-                        if node != None: 
-                            if node._height+1 > testNode._height:
-                                testNode._height = node._height+1
-                                testNode._maxLength += 1
-                    testNode = testNode._parent
-            else:
-                newNode = newNode[char]
-        newNode._word = True
-    return root
+	root = Node(None, "", False)
+	for word in wordList:
+		insertWordInTrie(root, word)
+	return root
 
 # Recursively converts a trie into a list of words. Function accepts a prefix representing current trie position.
 # node * str -> str list
-def trieToList(root, prefix = ""):
+def trieToList(root, prefix=""):
     strings = []
     if root._word: 
-        strings += prefix+root._letter
+        strings.append(prefix+root._letter)
     for node in root:
-        if node != None:
+        if node:
             result = trieToList(node, prefix=prefix+root._letter)
             strings += result
     return strings
@@ -66,9 +60,3 @@ def findLens(wordList):
     for word in wordList: 
         lengths[len(word)] += 1
     return lengths
-
-if __name__ == "__main__":
-    # FIXME:
-    # Write some proper test cases. 
-    # I don't guarantee correct functioning
-    pass

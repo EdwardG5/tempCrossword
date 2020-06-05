@@ -1,6 +1,6 @@
-from nodeClass import *
 from wordClass import *
-from dictToTrie import *
+from dictToTrie import nodesInTrie, listToTrie
+from nodeClass import *
 from queue import LifoQueue
 from fileToList import *
 import sys
