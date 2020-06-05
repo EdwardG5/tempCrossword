@@ -31,7 +31,7 @@ class TestDictToTrie(unittest.TestCase):
         # Original baseline: 	12.80068233
         words = self.wordList
         namespace = {'listToTrie' : globals().get("listToTrie"), 'words' : locals().get("words")}
-        self.assertLess(timeit("listToTrie(words)", number=500, globals=namespace), 15.0)
+        self.assertLess(timeit("listToTrie(words)", number=500, globals=namespace), 30.0)
 
     def test_trieToList(self):
         self.assertEqual(set(trieToList(self.root)), set(self.wordList))
