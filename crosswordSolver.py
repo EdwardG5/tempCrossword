@@ -1,9 +1,10 @@
-from wordClass import *
+from wordClass import Word
 from trie import nodesInTrie, listToTrie
 from queue import LifoQueue
 from helpers import fileToWordList
 import sys
 from constants import Constants
+from readyWordClassList import listToLifoQueue, setRanks, readyWordList
 
 #---------------------------------------------------------------------------#
 
@@ -11,23 +12,6 @@ from constants import Constants
 oneSolution = 1
 # Set which dictionary you want to use
 dictName = "wordLists/dict1k.txt"
-
-#---------------------------------------------------------------------------#
-
-# Explanation for bool interpretation of other types
-# http://anh.cs.luc.edu/python/hands-on/3.1/handsonHtml/boolean.html
-
-# Explanation of the queue library
-# https://docs.python.org/3/library/queue.html
-
-#---------------------------------------------------------------------------#
-
-def listToLifoQueue(words):
-	length = len(words)
-	lQ = LifoQueue()
-	for x in range(len(words)):
-		lQ.put(words[length-1-x])
-	return lQ
 
 #---------------------------------------------------------------------------#
 
@@ -120,32 +104,6 @@ def match(word, cL, node, wordList, root):
 
 #---------------------------------------------------------------------------#
 
-# Set ranks of words in list (starting at 0)
-def setRanks(wordList):
-	for x in range(len(wordList)):
-		wordList[x].setRank(x)
-
-# Set ranks and initialize modify and notModify characteristics
-# Modifies the words themselves (no copy created)
-def readyWordList(wordList):
-	setRanks(wordList)
-	for x in wordList:
-		x.initializeModify()
-		x.initializeNotModify()
-
-#---------------------------------------------------------------------------#
-
-# e.g. dictName = "Dict.txt"
-# Takes a dictionary name and returns the root of a trie storing dictionary
-def readyTrie(dictName):
-	dictionary = fileToWordList(dictName)
-	for x in range(len(dictionary)):
-		dictionary[x] = dictionary[x].lower()
-	root = listToTrie(dictionary)
-	return root
-
-#---------------------------------------------------------------------------#
-
 # Logic: 
 # 1) Sort wordlist (word list) into the optimal processing order
 # 2) Set ranks and initialize modify and notModify characteristics
@@ -156,30 +114,13 @@ def readyTrie(dictName):
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
 # Note: solution list is backwards relative to given list
 def solve(wordList):
-	root = readyTrie(dictName)
+	root = listToTrie(fileToWordList(dictName))
 	readyWordList(wordList)
 	wordList = listToLifoQueue(wordList)
 	solutions = solveHelper(wordList, root)
 	return solutions
 
 #---------------------------------------------------------------------------#
-
-def printNSolutions(solutions):
-	for x in range(int(input())):
-		print(solutions[x])
-
-#---------------------------------------------------------------------------#
-
-def main0():
-	# dictionary = fileToWordList("Dict.txt")
-	# for x in range(len(dictionary)):
-	# 	dictionary[x] = dictionary[x].lower()
-	# print(len(dictionary))
-	# root = listToTrie(dictionary)
-	words = [[0, 0, 0, 3*Constants.defaultEmptyChar], [2, 0, 1, 3*Constants.defaultEmptyChar]]
-	wordList = convertWordsToClass(words, {})
-	solutions = solve(wordList)
-	assert(solutions == [['act', 'act']])
 
 def gridTest():
 	dictionary = ["ba", "abad", "aba", "adb"]
@@ -239,15 +180,9 @@ def tTest():
 
 #---------------------------------------------------------------------------#
 
-# If you're running this file as a standalone application: 
-
-def main():
-	main0()
+if __name__ == "__main__":
 	gridTest()
 	hcTest()
 	tTest()
 	print("Success: All tests passed")
-
-if __name__ == "__main__":
-	main()
 
