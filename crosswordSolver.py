@@ -164,42 +164,6 @@ def solve(wordList):
 
 #---------------------------------------------------------------------------#
 
-# I can't for the life of me figure out what these two functions are supposed to do.
-# The only place they are called from is themselves and main0 below. (i.e. deleting them
-# wouldn't break anything). I'm holding off on deleting them until later (maybe they
-# at some point start making sense).
-
-def wordsIntersect(word1, word2):
-    if word1[2] == word2[2]: return False
-    right = (word1 if word1[2]==0 else word2)
-    down = (word1 if word1[2]==1 else word2)
-    return (right[1] in range(down[1],down[1]+len(down[3]))) and (down[0] in range(right[0],right[0]+len(right[3])))
-
-def convertWordsToClass(words, locations):
-    index = 0
-    classes = []
-    for i in words:
-        setChars = len(i[3])-i[3].count(Constants.defaultEmptyChar)
-        locations[index] = [i[0],i[1],i[2]]
-        classes.append(Word(len(i[3]),0,setChars,index))
-        classes[index].setChars([Constants.defaultEmptyChar]+[Constants.defaultEmptyChar if c == Constants.defaultEmptyChar else c for c in i[3]])
-        for j in words:
-            if (i != j) and wordsIntersect(i,j): 
-                classes[index].setConstrained(classes[index]._constrained + 1)
-        index+=1
-    for i in range(len(words)):
-        for j in range(len(words)):
-            if words[i] != words[j] and wordsIntersect(words[i],words[j]):
-                if words[i][2]==0:
-                    classes[i].setPointer(words[j][0]-words[i][0]+1,classes[j])
-                    classes[i].setIndices(words[j][0]-words[i][0]+1,words[i][1])
-                else:
-                    classes[i].setPointer(words[j][1]-words[i][1]+1,classes[j])
-                    classes[i].setIndices(words[j][1]-words[i][1]+1,words[i][0])
-    return classes
-
-#---------------------------------------------------------------------------#
-
 def printNSolutions(solutions):
 	for x in range(int(input())):
 		print(solutions[x])
