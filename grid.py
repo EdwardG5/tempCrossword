@@ -40,6 +40,9 @@ def printGrid(grid):
 
 # Removes all filled in letters leaving only blocked squares
 # Replace specifies what to fill all non-blocked squares with (standard usage is Constants.defaultEmptyChar or [] (to store identifiers))
+# Note: pure. It creates a new grid, rather than modifying the original.
+# Note: every time it creates a copy of "replace", so passing in a mutable structure
+# is no problem.
 def removeLetters(grid, replace=Constants.defaultEmptyChar):
 	convert = lambda l: l if l == Constants.defaultBlockedChar else copy(replace) # If you pass in a mutable type e.g. [] you need to ensure you don't pass the same object reference to each
 	return list(map((lambda line: list(map(convert, line))), grid))
@@ -75,6 +78,78 @@ def lB(grid, row, col):
 # Up square is blocked
 def uB(grid, row, col):
 	return not notBlocked(grid[row-1][col])
+
+# -----------------------------------------------------------------
+
+# Rules: 
+# a square is the start of a word if not blocked AND: 
+# 		   	At the top or leftmost edge of grid
+# 		OR 	Up/Left square is blocked
+# AND across/down is not blocked (len >= 2)
+
+# - This function identifies squares in the grid which according to the above rules begin
+# words in the crossword. It passes an index identifying which ith word it is (left to right).
+# This starts at 1 by default - you can modify.
+# - fA * fD * replace -> grid -> newGrid
+# - (grid * row * col * index -> _) * (grid * row * col * index -> _) * any -> char list list -> newGrid (blocked spaces
+# are left unmodified, while other squares are filled with "any".)
+# - The function begins by calling removeLetters, replacing non-blocked squares with the argument replace.
+# Note: every time it creates a copy of "replace", so passing in a mutable structure is no problem.
+# - The function identifies starting squares and then passed these squares together with the grid to fA
+# and fD (in that order). Note that if a square starts both an across and down word, both fA and fD will
+# be applied. Note that the same index will be passed to both.
+
+# startingSquaresOne one is similar except that it identifies squares which start across OR down, and applies
+# the function passed only once. Note: in this case you have no contextual indication or whether Across/Down/both
+# causes invocation of the function.
+
+# Note: The below functions require that grid is at least 2 across and down. 
+
+def startingSquares(fA, fD, replace, index=1):
+	def wrapper(grid, index=index):
+		newGrid = removeLetters(grid, replace=replace)
+		height, width = len(newGrid), len(newGrid[0])
+		for row in range(height):
+			for col in range(width):
+				if notBlocked(newGrid[row][col]):
+					startOfAcross = False
+					startOfDown = False
+					# Across
+					if (col == 0 or lB(newGrid, row, col)) and nA(newGrid, row, col):
+						startOfAcross = True
+						fA(newGrid, row, col, index)
+					# Down
+					if (row == 0 or uB(newGrid, row, col)) and nD(newGrid, row, col):
+						startOfDown = True
+						fD(newGrid, row, col, index)
+					if startOfAcross or startOfDown:
+						index += 1
+		return newGrid
+	return wrapper
+
+def startingSquaresOne(f, replace, index=1):
+	def wrapper(grid, index=index):
+		newGrid = removeLetters(grid, replace=replace)
+		height, width = len(newGrid), len(newGrid[0])
+		for row in range(height):
+			for col in range(width):
+				if notBlocked(newGrid[row][col]):
+					startOfAcross = False
+					startOfDown = False
+					# Across
+					if (col == 0 or lB(newGrid, row, col)) and nA(newGrid, row, col):
+						startOfAcross = True
+					# Down
+					if (row == 0 or uB(newGrid, row, col)) and nD(newGrid, row, col):
+						startOfDown = True
+					if startOfAcross or startOfDown:
+						f(newGrid, row, col, index)
+						index += 1
+		return newGrid
+	return wrapper
+
+# -----------------------------------------------------------------
+
 # Populate across
 def pA(grid, row, col, index):
 	try:
@@ -91,17 +166,7 @@ def pD(grid, row, col, index):
 			row += 1
 	except:
 		pass
-
-# -----------------------------------------------------------------
-
-# Rules: 
-# a square is the start of a word if not blocked AND: 
-# 		   	At the top or leftmost edge of grid
-# 		OR 	Up/Left square is blocked
-# AND across/down is not blocked (len >= 2)
-
-# The below functions require that grid is at least 2 across and down. 
-
+	
 # Populate grid with word identifies (number, "Down"/"Across")
 # char list list -> (char OR (index, "Up"/"Down") list)
 # In the latter case, the list can be of length 1 or 2 (part of one or two words)
