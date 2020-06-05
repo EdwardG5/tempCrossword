@@ -1,10 +1,9 @@
 from wordClass import Word
 from trie import nodesInTrie, listToTrie
-from queue import LifoQueue
 from helpers import fileToWordList
 import sys
 from constants import Constants
-from readyWordClassList import listToLifoQueue, setRanks, readyWordList
+from readyWordClassList import setRanks, readyWordList
 
 #---------------------------------------------------------------------------#
 
@@ -22,17 +21,17 @@ dictName = "wordLists/dict1k.txt"
 def solveHelper(wordList, root):
 	
 	# Base case: Success. No more words to match
-	if wordList.empty():
+	if not wordList:
 		# print("Complete solution found")
 		return [[]]
 	
 	# Recursive case
 	else:
-		word = wordList.get(block=False) # currentWord. Next word to be filled in
+		word = wordList.pop() # currentWord. Next word to be filled in
 		solutions = match(word, 0, root, wordList, root)
 
 		# Return wordlist to original state
-		wordList.put(word)
+		wordList.append(word)
 		
 		return solutions
 
@@ -116,7 +115,7 @@ def match(word, cL, node, wordList, root):
 def solve(wordList):
 	root = listToTrie(fileToWordList(dictName))
 	readyWordList(wordList)
-	wordList = listToLifoQueue(wordList)
+	wordList.reverse() # convert to stack
 	solutions = solveHelper(wordList, root)
 	return solutions
 

@@ -7,7 +7,7 @@ sys.path.append('..')
 #---------------------------------------------------------------------------#
 
 from wordClass import *
-from readyWordClassList import readyWordList, listToLifoQueue
+from readyWordClassList import readyWordList
 
 #---------------------------------------------------------------------------#
 
@@ -23,17 +23,17 @@ oneSolution = 1
 def solveHelper(wordList, root):
 	
 	# Base case: Success. No more words to match
-	if wordList.empty():
+	if not wordList:
 		# print("Complete solution found")
 		return [[]]
 	
 	# Recursive case
 	else:
-		word = wordList.get(block=False) # currentWord. Next word to be filled in
+		word = wordList.pop() # currentWord. Next word to be filled in
 		solutions = match(word, 0, root, wordList, root)
 
 		# Return wordlist to original state
-		wordList.put(word)
+		wordList.append(word)
 		
 		return solutions
 
@@ -115,7 +115,7 @@ def match(word, cL, node, wordList, root):
 # solve(wordList, root) => list containing a list of all solution lists e.g. [["hi", "die"], ["hi", "bye"]]. Failure returns an empty list
 def solve1(wordList, trie):
 	readyWordList(wordList)
-	wordList = listToLifoQueue(wordList)
+	wordList.reverse() # convert to stack
 	solutions = solveHelper(wordList, trie)
 	return solutions
 

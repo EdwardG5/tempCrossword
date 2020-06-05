@@ -7,7 +7,7 @@ sys.path.append('..')
 #---------------------------------------------------------------------------#
 
 from wordClass import *
-from readyWordClassList import readyWordList, listToLifoQueue
+from readyWordClassList import readyWordList
 
 #---------------------------------------------------------------------------#
 
@@ -23,7 +23,7 @@ oneSolution = 1
 def solveHelper(wordList, trieList, patternDict):
 	
 	# Base case: Success. No more words to match
-	if wordList.empty():
+	if not wordList:
 		# print("Complete solution found")
 		return [[]]
 	
@@ -32,24 +32,24 @@ def solveHelper(wordList, trieList, patternDict):
 		##################
 		# Check whether solution is possible (check existence in patternDict)
 		wordListL = []
-		while not wordList.empty():
-			wordListL.append(wordList.get(block=False))
+		while wordList:
+			wordListL.append(wordList.pop())
 		for word in wordListL:
 			if word.string() not in patternDict:
 				# Restore list
 				while wordListL:
-					wordList.put(wordListL.pop())
+					wordList.append(wordListL.pop())
 				# Exit
 				return []
 		# Restore list
 		while wordListL:
-			wordList.put(wordListL.pop())
+			wordList.append(wordListL.pop())
 		##################
 		# Solution possible
-		word = wordList.get(block=False) # currentWord. Next word to be filled in
+		word = wordList.pop() # currentWord. Next word to be filled in
 		solutions = match(word, 0, trieList[word.length()], wordList, trieList, patternDict) # Pass try of appropriate length
 		# Return wordlist to original state
-		wordList.put(word)
+		wordList.append(word)
 		return solutions
 
 # word is the word to be matched against: class word
@@ -126,7 +126,7 @@ def match(word, cL, node, wordList, root, patternDict):
 # iW = infoWrapper
 def solve3(wordList, iW):
 	readyWordList(wordList) # set ranks and such in situ
-	wordList = listToLifoQueue(wordList) # convert to stack
+	wordList.reverse() # convert to stack
 	solutions = solveHelper(wordList, iW._tries, iW._patternDict) 
 	return solutions
 

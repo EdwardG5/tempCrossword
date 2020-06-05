@@ -1,7 +1,3 @@
-from queue import LifoQueue
-
-#---------------------------------------------------------------------------#
-
 # Set ranks of words in list (starting at 0)
 def setRanks(wordList):
 	for x in range(len(wordList)):
@@ -14,14 +10,3 @@ def readyWordList(wordList):
 	for x in wordList:
 		x.initializeModify()
 		x.initializeNotModify()
-
-#---------------------------------------------------------------------------#
-
-def listToLifoQueue(words):
-	length = len(words)
-	lQ = LifoQueue()
-	for x in range(len(words)):
-		lQ.put(words[length-1-x])
-	return lQ
-
-#---------------------------------------------------------------------------#
