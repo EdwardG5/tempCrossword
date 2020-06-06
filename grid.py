@@ -14,7 +14,6 @@ from constants import Constants
 from copy import copy
 from wordClass import Word
 from collections import namedtuple
-from crosswordSolver import solve
 
 """
 Option with more whitespace: 
@@ -315,6 +314,10 @@ def gridToWordClassList(grid):
 		rowIncr = 1-colIncr
 		wordInfo = gMatchingId(infoGrid[row][col], wid)
 		for i in range(wordInfo.len):
+			# Substitute existing letter
+			char = grid[row][col].lower()
+			if char.isalpha():
+				wcObject._chars[i+1] = char
 			# Two words intersecting
 			if len(infoGrid[row][col]) == 2:
 				otherWordInfo = gNotMatchingId(infoGrid[row][col], wid)
@@ -350,7 +353,7 @@ def wordClassListToGrid(grid, solution, widList):
 
 if __name__ == "__main__":
 	
-	example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
+	example1 = [[' ', 'a', ' ', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
 	# Photo stored in Desktop
 	fullNYT = [	['h', 'e', 'l', 'l', '#', '#', 'w', 'e', 'l', 'l', '#', 'a', 'm', 'p', 's'],
 				['o', 'w', 'i', 'e', '#', 's', 'o', 'd', 'o', 'i', '#', 'c', 'a', 'l', 'l'], 
@@ -406,12 +409,14 @@ if __name__ == "__main__":
 	assert(startPositionsDict(fullNYT) == fullNYTStartPositionsDict)
 
 	# Correctness test case for gridToWordClassList
-
+	
 	wordClassList = gridToWordClassList(example1)
 	word0 = wordClassList[0]
 	word1 = wordClassList[1]
 	word2 = wordClassList[2]
 	word3 = wordClassList[3]
+
+	# Correct linking
 	assert(word0._pointers[2] == word1)
 	assert(word0._indices[2] == 1)
 	assert(word1._pointers[1] == word0)
@@ -421,15 +426,23 @@ if __name__ == "__main__":
 	assert(word3._pointers[2] == word2)
 	assert(word3._indices[2] == 2)
 
-	# Correctness test case for wordClassListToGrid
+	# Correct letter substitution
+	# example1 = [[' ', 'a', ' ', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
+	assert(word0._chars[1] == Constants.defaultEmptyChar)
+	assert(word0._chars[2] == 'a')
+	assert(word0._chars[3] == Constants.defaultEmptyChar)
+	assert(word1._chars[1] == 'a')
+	assert(word1._chars[2] == 's')
+	assert(word2._chars[1] == 'a')
+	assert(word2._chars[2] == Constants.defaultEmptyChar)
+	assert(word3._chars[1] == 'k')
+	assert(word3._chars[2] == Constants.defaultEmptyChar)
 
-	# Correct
-	expected = [['a', 'd', 'd', '#'], ['#', 'o', '#', 'a'], ['#', '#', 'a', 'm']]
-
-	wcList = gridToWordClassList(example1)
-	wids = list(reversed([word._id for word in wcList]))
-	solutions = solve(wcList)
-	filledInGrid = wordClassListToGrid(example1, solutions[0], wids)
+	# Test case for wordClassListToGrid
+	wids = [WordId(ith=4, dir='Across'), WordId(ith=3, dir='Down'), WordId(ith=2, dir='Down'), WordId(ith=1, dir='Across')]
+	solution = ["in", "an", "ye", "bye"]
+	expected = [['b', 'y', 'e', '#'], ['#', 'e', '#', 'a'], ['#', '#', 'i', 'n']]
+	filledInGrid = wordClassListToGrid(example1, solution, wids)
 	assert(filledInGrid == expected)
 
 	print("Success: All tests passed")
