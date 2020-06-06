@@ -8,6 +8,7 @@ I have added DEV to areas which are added on a whim to casually implement quickl
 from tkinter import *
 import string
 from constants import Constants
+from grid import populateWithIth
 
 # DEV -----------------
 import grid
@@ -155,6 +156,9 @@ class MainArea(Canvas):
 		# Letters stored in grid
 		self.letters = [[Constants.defaultEmptyChar]*self.width for i in range(self.height)] #The grid of letters
 		self.letterIds = [[None]*self.width for i in range(self.height)] # Canvas ids of the letters
+		# Letters stored in grid
+		self.numbers = [[None]*self.width for i in range(self.height)] #The grid of numbers
+		self.numberIds = [[None]*self.width for i in range(self.height)] # Canvas ids of the numbers
 
 		# Not currently used
 		# the canvas ids of the word numbers (top right, crossword identifiers)
@@ -220,6 +224,8 @@ class MainArea(Canvas):
 			row, col = self.selected[0], self.selected[1]
 			if self.letterIds[row][col]:	
 				self.tag_raise(self.letterIds[row][col])
+			if self.numberIds[row][col]:
+				self.tag_raise(self.numberIds[row][col])
 
 	# Determines whether a click is within the grid, and if so what square was clicked. Returns a relevant tuple
 	# Note: pure function
@@ -290,6 +296,22 @@ class MainArea(Canvas):
 													font = f"({Constants.font[0]} {textSize}", 
 													disabledfill = "#a3a3a3") # Gray, copied from app.mainarea.widthE
 		self.letters[row][col] = char
+	
+	# Adds a letter to a particular square
+	def _add_number(self, number, row, col):
+		textSize = int(self.cellDims//1.2)
+		numberSize = int(textSize//3)
+		self.numberIds[row][col] = self.create_text(self.xMargins+(col+0.75)*self.cellDims,
+													self.yMargins+(row+0.25)*self.cellDims,
+													text = number,
+													font = f"({Constants.font[0]} {numberSize}", 
+													fill = "#a3a3a3") # Gray, copied from app.mainarea.widthE
+		self.numbers[row][col] = number
+
+	# Reset the numbers and numbers ID arrays
+	def _resetNumbers(self):
+		self.numbers = [[None]*self.width for i in range(self.height)]
+		self.numberIds = [[None]*self.width for i in range(self.height)]
 
 	# If square selected, toggles to white and adds letter
 	def _canvas_on_key_press(self, event):
@@ -323,10 +345,14 @@ class MainArea(Canvas):
 			iwidth = self.width
 			iheight = self.height
 			igrid = self.getRepresentation()
+			inumbers = self.numbers
 			# Reset canvas
 			self.clear()
 			# Redraw board
 			self.drawBoard(width=iwidth, height=iheight, fill=igrid)
+			# Restore + redraw numbers
+			self.numbers = inumbers
+			self.drawNumbers()
 			# Redo configurations
 			if iselected:
 				row, col = iselected[0], iselected[1]
@@ -336,6 +362,19 @@ class MainArea(Canvas):
 				self.enable()
 			elif istate == 'disabled':
 				self.disable()
+
+	# Set numbers
+	def setNumbers(self):
+		self.numbers = populateWithIth(self.getRepresentation())
+
+	# Draw numbers
+	# Note: Numbers must be initialised before this (usual call sequence is setNumbers() drawNumbers())
+	def drawNumbers(self):
+		for row in range(self.height):
+			for col in range(self.width):
+				number = self.numbers[row][col]
+				if isinstance(number, int):
+					self._add_number(number, row, col)
 
 	# Destroy bindings + make letters gray
 	def disable(self):
@@ -359,7 +398,16 @@ class MainArea(Canvas):
 		self.squareColors = None
 		self.letters = None
 		self.letterIds = None
-		self.fillIds2 = None 
+		self.numbers = None
+		self.numberIds = None
+
+	# Remove the numbers from the board
+	def clearNumbers(self):
+		for row in self.numberIds:
+			for cid in row:
+				if cid:
+					self.delete(cid)
+		self._resetNumbers()
 
 	# Draw a grid with dimensions self.width x self.height
 	def drawBoard(self, width=5, height=5, fill=[]):
@@ -380,6 +428,9 @@ class MainArea(Canvas):
 		self.squareColorIds = [[None]*self.width for i in range(self.height)]
 		self.letters = [[Constants.defaultEmptyChar]*self.width for i in range(self.height)]
 		self.letterIds = [[None]*self.width for i in range(self.height)]
+		
+		# Reset numbers
+		self._resetNumbers()
 
 		# Begin drawing board
 
@@ -577,7 +628,9 @@ class Application(Tk):
 
 	# FIX
 	def solve(self):
-		pass
+		self.mainarea.setNumbers()
+		self.mainarea.drawNumbers()
+		self.mainarea.disable()
 
 	# FIX
 	def clear(self):
