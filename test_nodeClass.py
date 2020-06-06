@@ -1,6 +1,5 @@
 import unittest
 from nodeClass import Node
-# Verify that node indexing and equality comparison has been implemented correctly
 
 class TestNodeClass(unittest.TestCase):
 
