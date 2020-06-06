@@ -8,7 +8,7 @@ from readyWordClassList import setRanks, readyWordList
 #---------------------------------------------------------------------------#
 
 # Set whether you want just 1 solution (1 = 1 solution, 0 = all solutions (could be thousands))
-oneSolution = 0
+oneSolution = 1
 # Set which dictionary you want to use
 dictName = "wordLists/dict1k.txt"
 
@@ -146,7 +146,7 @@ def gridTest():
 	word4._pointers[3], word4._indices[3] = (word3, 1)
 	words = [word1, word2, word3, word4]
 	# Solve grid crossword
-	solutions = solve(words)
+	# solutions = solve(words)
 	assert(nodesInTrie(root) == 9)
 
 def hcTest():

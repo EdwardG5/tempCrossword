@@ -14,6 +14,7 @@ from constants import Constants
 from copy import copy
 from wordClass import Word
 from collections import namedtuple
+from crosswordSolver import solve
 
 """
 Option with more whitespace: 
@@ -180,16 +181,18 @@ def startingSquaresGlobal(fA, fD, struct, ith=1):
 
 # -----------------------------------------------------------------
 
+# Unique word identifier (ith, direction)
+WordId = namedtuple('WordId', ['ith', 'dir'])
+
 # Data type to store information about a word in the context of a particular square
-# Id = 1, 2, 3, ..
-# Dir = "Above", "Down"
+# Wid = WordId tuple, ith, dir, e.g. (1, "Across")
 # Len = Length of the word
 # Constrained = Number of letters of that word which are linked to other words
 # Pos = ith letter, starting at 1
-SquareWordInfo = namedtuple('SquareWordInfo', ['id', 'dir', 'len', 'pos'])
+SquareWordInfo = namedtuple('SquareWordInfo', ['wid', 'len', 'pos'])
 
-# Count the length of the word starting at row, col, going in direction dire
-# grid : any type of grid
+# -----------------------------------------------------------------
+
 def gLen(grid, dire, row, col):
 	count = 0
 	try:
@@ -208,7 +211,8 @@ def fA(grid, row, col, ith):
 		length = gLen(grid, "Across", row, col)
 		pos = 1
 		while notBlocked(grid[row][col]):
-			info = SquareWordInfo(ith, "Across", length, pos)
+			wid = WordId(ith, "Across")
+			info = SquareWordInfo(wid, length, pos)
 			grid[row][col].append(info)
 			col += 1
 			pos += 1
@@ -220,7 +224,8 @@ def fD(grid, row, col, ith):
 		length = gLen(grid, "Down", row, col)
 		pos = 1
 		while notBlocked(grid[row][col]):
-			info = SquareWordInfo(ith, "Down", length, pos)
+			wid = WordId(ith, "Down")
+			info = SquareWordInfo(wid, length, pos)
 			grid[row][col].append(info)
 			row += 1
 			pos += 1
@@ -235,24 +240,28 @@ populateWithInfo = startingSquares(fA, fD, replace=[])
 
 def f(grid, row, col, ith):
 	try:
-		grid[row][col].append(ith)
+		grid[row][col] = ith
 	except:
 		pass
 
 # Produces a grid with ith numbers in the squares starting crossword words. Used for drawing
 # small numbers. 
+# char list list -> char list list
 populateWithIth = startingSquaresOne(f, replace=Constants.defaultEmptyChar)
 
 # -----------------------------------------------------------------
 
 def fA(mDict, row, col, ith):
-	mDict[(ith, "Across")] = (row, col)
+	wid = WordId(ith, "Across")
+	mDict[wid] = (row, col)
 
 def fD(mDict, row, col, ith):
-	mDict[(ith, "Down")] = (row, col)
+	wid = WordId(ith, "Down")
+	mDict[wid] = (row, col)
 
 # Produces a dict e.g. {(1, "Above") : (row, col), (1, "Down") : (row, col), ...}
-startPosDict = startingSquaresGlobal(fA, fD, {})
+# char list list -> Dict[wid] : int * int
+startPositionsDict = startingSquaresGlobal(fA, fD, {})
 
 # -----------------------------------------------------------------
 
@@ -272,8 +281,23 @@ def gConstrained(grid, dire, row, col):
 		pass
 	return count
 
+# Given a list of SquareWordInfo tuples, returns the one whose id matches wid
+def gMatchingId(l, wid):
+	for info in l:
+		if info.wid == wid:
+			return info
+
+# Given a list of SquareWordInfo tuples, returns the one whose id does not match wid
+def gNotMatchingId(l, wid):
+	for info in l:
+		if info.wid == wid:
+			pass
+		else:
+			return info
+
 # Convert a grid into a list of fully linked word class objects
 # str list list -> wordClass list
+# FIXME: Right not it doesn't take into account letters that are already in the grid
 def gridToWordClassList(grid):
 	infoGrid = populateWithInfo(grid)
 	startPosDict = startPositionsDict(grid)
@@ -281,128 +305,134 @@ def gridToWordClassList(grid):
 	# Create words
 	for row, col in startPosDict.values():
 		for wordInfo in infoGrid[row][col]:
-			wid, wdir, wlen = wordInfo.id, wordInfo.dir, wordInfo.length
-			wconstrained = gConstrained(grid, wdir, *startPosDict[(wid, wdir)])
-			wcDict[(wid, wdir)] = Word(wlen, wconstrained, 0, (wid, wdir))
+			wid, wlen = wordInfo.wid, wordInfo.len
+			wconstrained = gConstrained(grid, wid.dir, row, col)
+			wcDict[wid] = Word(wlen, wconstrained, 0, wid)
 	# Link words
-	for word in wcDict:
-		row, col = startPosDict[word._id]
-		wdir = word[1]
-		rowIncr = 1 if wdir == "Across" else 0
-		colIncr = 1-rowIncr
-		for i in range(word._length):
+	for wid, wcObject in wcDict.items():
+		row, col = startPosDict[wid]
+		colIncr = 1 if wid.dir == "Across" else 0
+		rowIncr = 1-colIncr
+		wordInfo = gMatchingId(infoGrid[row][col], wid)
+		for i in range(wordInfo.len):
 			# Two words intersecting
 			if len(infoGrid[row][col]) == 2:
-				words = infoGrid[row][col]
-				otherWordInfo = words[0] if (word._id == (words[1].id, words[1].dir)) else words[1]
-				owid, owpos = (otherWordInfo.id, otherWordInfo.pos), otherWordInfo.pos
-				word._pointers[i+1], word._indices[i+1] = (wcDict[owid], owpos)
-			row += rowIncr
+				otherWordInfo = gNotMatchingId(infoGrid[row][col], wid)
+				owid, owpos = otherWordInfo.wid, otherWordInfo.pos
+				wcObject._pointers[i+1], wcObject._indices[i+1] = wcDict[owid], owpos
 			col += colIncr
+			row += rowIncr
 	return list(wcDict.values())
 
 # -----------------------------------------------------------------
 
-# Simple correctness test case:
+# Substites a word into a grid, starting at row, col, in direction dir
+def fillInWord(grid, word, direction, row, col):
+	colIncr = 1 if direction == "Across" else 0
+	rowIncr = 1-colIncr
+	for letter in word:
+		grid[row][col] = letter
+		col += colIncr
+		row += rowIncr
 
-example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
+# Accepts a grid (in any state of completion), a solution list and a WordId list (corresponding order), 
+# and transforms that into a filled in char grid.
+# char list * WordId list -> char list list
+def wordClassListToGrid(grid, solution, widList):
+	newGrid = removeLetters(grid, replace=Constants.defaultEmptyChar)
+	startPosDict = startPositionsDict(newGrid)
+	for i, word in enumerate(solution):
+		wid = widList[i]
+		fillInWord(newGrid, word, wid.dir, *startPosDict[wid])
+	return newGrid
 
-wordClassList = gridToWordClassList(example1)
+# -----------------------------------------------------------------
 
-word0 = wordClassList[0]
-word1 = wordClassList[1]
-word2 = wordClassList[2]
-word3 = wordClassList[3]
-
-assert(word0._pointers[2] == word1)
-assert(word0._indices[2] == 1)
-assert(word1._pointers[1] == word0)
-assert(word1._indices[1] == 2)
-assert(word2._pointers[2] == word3)
-assert(word2._indices[2] == 2)
-assert(word3._pointers[2] == word2)
-assert(word3._indices[2] == 2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
-
-# def f(mList, row, col, ith):
-# 	mList.append('z')
-
-# x = []
-# startPosList = startingSquaresGlobal(f, f, x)
-
-# a = startPosList(example1)
-# print(a)
-# b = startPosList(example1)
-# print(b)
-
-# input()
-
-
-
-
-
-# from crosswordSolver import solve
-# solutions = solve(wordClassList)
-
-
-# # Convert a list of word class objects into a char grid
-# def wordClassListToGrid(wL):
-# 	pass
-
-# if __name__ == "__main__":
+if __name__ == "__main__":
 	
-# 	example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
-# 	# Photo stored in Desktop
-# 	fullNYT = [	['h', 'e', 'l', 'l', '#', '#', 'w', 'e', 'l', 'l', '#', 'a', 'm', 'p', 's'],
-# 				['o', 'w', 'i', 'e', '#', 's', 'o', 'd', 'o', 'i', '#', 'c', 'a', 'l', 'l'], 
-# 				['b', 'a', 'n', 'g', '#', 't', 'r', 'u', 't', 'v', '#', 'c', 'r', 'a', 'y'], 
-# 				['o', 'n', 'e', 'w', 'o', 'o', 'd', '#', 's', 'e', 't', 'r', 'r', 't', 'e'], 
-# 				['#', '#', '#', 'a', 'm', 'i', 's', 'h', '#', 'b', 'r', 'a', 'c', 'e', 's'], 
-# 				['a', 'd', 'e', 'x', 'e', 'c', '#', 'a', 'l', 'l', 'a', '#', 'a', 'n', 't'], 
-# 				['b', 'a', 'l', 'i', 'n', '#', 'g', 'l', 'o', 'o', 'p', 's', '#', '#', '#'], 
-# 				['c', 'h', 'i', 'n', '#', 's', 'o', 'f', 't', 'g', '#', 'p', 'o', 'o', 'h'], 
-# 				['#', '#', '#', 'g', 'a', 'l', 'o', 'o', 't', '#', 't', 'i', 'a', 'r', 'a'], 
-# 				['i', 'r', 's', '#', 'b', 'o', 'f', 'f', '#', 'j', 'u', 'n', 'k', 'e', 't'], 
-# 				['t', 'e', 'e', 's', 'u', 'p', '#', 'f', 'r', 'a', 'n', 'c', '#', '#', '#'], 
-# 				['s', 'w', 'e', 'a', 't', 'i', 't', '#', 'a', 'd', 'a', 'y', 'a', 'g', 'o'], 
-# 				['s', 'i', 'n', 'g', '#', 't', 'i', 'n', 'g', 'e', '#', 'c', 'h', 'o', 'p'], 
-# 				['a', 'r', 'i', 'a', '#', 'c', 'r', 'e', 'e', 'd', '#', 'l', 'o', 'n', 'e'], 
-# 				['d', 'e', 'n', 's', '#', 'h', 'e', 'a', 'r', '#', '#', 'e', 'y', 'e', 'd'] ]
-# 	example1LettersRemoved = [[' ', ' ', ' ', '#'], ['#', ' ', '#', ' '], ['#', '#', ' ', ' ']]
-# 	example1StartIdentifiers = [[1, 2, ' ', '#'], ['#', ' ', '#', 3], ['#', '#', 4, ' ']] 
-# 	example1WordIdentifiers = [[[(1, 'Across')], [(1, 'Across'), (2, 'Down')], [(1, 'Across')], '#'], ['#', [(2, 'Down')], '#', [(3, 'Down')]], ['#', '#', [(4, 'Across')], [(3, 'Down'), (4, 'Across')]]]
-# 	fullNYTLettersRemoved = [[' ', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' '], ['#', '#', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], ['#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'], [' ', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ']]
-# 	fullNYTStartIdentifiers = [[1, 2, 3, 4, '#', '#', 5, 6, 7, 8, '#', 9, 10, 11, 12], [13, ' ', ' ', ' ', '#', 14, ' ', ' ', ' ', ' ', '#', 15, ' ', ' ', ' '], [16, ' ', ' ', ' ', '#', 17, ' ', ' ', ' ', ' ', '#', 18, ' ', ' ', ' '], [19, ' ', ' ', ' ', 20, ' ', ' ', '#', 21, ' ', 22, ' ', ' ', ' ', ' '], ['#', '#', '#', 23, ' ', ' ', ' ', 24, '#', 25, ' ', ' ', ' ', ' ', ' '], [26, 27, 28, ' ', ' ', ' ', '#', 29, 30, ' ', ' ', '#', 31, ' ', ' '], [32, ' ', ' ', ' ', ' ', '#', 33, ' ', ' ', ' ', ' ', 34, '#', '#', '#'], [35, ' ', ' ', ' ', '#', 36, ' ', ' ', ' ', ' ', '#', 37, 38, 39, 40], ['#', '#', '#', 41, 42, ' ', ' ', ' ', ' ', '#', 43, ' ', ' ', ' ', ' '], [44, 45, 46, '#', 47, ' ', ' ', ' ', '#', 48, ' ', ' ', ' ', ' ', ' '], [49, ' ', ' ', 50, ' ', ' ', '#', 51, 52, ' ', ' ', ' ', '#', '#', '#'], [53, ' ', ' ', ' ', ' ', ' ', 54, '#', 55, ' ', ' ', ' ', 56, 57, 58], [59, ' ', ' ', ' ', '#', 60, ' ', 61, ' ', ' ', '#', 62, ' ', ' ', ' '], [63, ' ', ' ', ' ', '#', 64, ' ', ' ', ' ', ' ', '#', 65, ' ', ' ', ' '], [66, ' ', ' ', ' ', '#', 67, ' ', ' ', ' ', '#', '#', 68, ' ', ' ', ' ']]
-# 	fullNYTWordIdentifiers = [[[(1, 'Across'), (1, 'Down')], [(1, 'Across'), (2, 'Down')], [(1, 'Across'), (3, 'Down')], [(1, 'Across'), (4, 'Down')], '#', '#', [(5, 'Across'), (5, 'Down')], [(5, 'Across'), (6, 'Down')], [(5, 'Across'), (7, 'Down')], [(5, 'Across'), (8, 'Down')], '#', [(9, 'Across'), (9, 'Down')], [(9, 'Across'), (10, 'Down')], [(9, 'Across'), (11, 'Down')], [(9, 'Across'), (12, 'Down')]], [[(1, 'Down'), (13, 'Across')], [(2, 'Down'), (13, 'Across')], [(3, 'Down'), (13, 'Across')], [(4, 'Down'), (13, 'Across')], '#', [(14, 'Across'), (14, 'Down')], [(5, 'Down'), (14, 'Across')], [(6, 'Down'), (14, 'Across')], [(7, 'Down'), (14, 'Across')], [(8, 'Down'), (14, 'Across')], '#', [(9, 'Down'), (15, 'Across')], [(10, 'Down'), (15, 'Across')], [(11, 'Down'), (15, 'Across')], [(12, 'Down'), (15, 'Across')]], [[(1, 'Down'), (16, 'Across')], [(2, 'Down'), (16, 'Across')], [(3, 'Down'), (16, 'Across')], [(4, 'Down'), (16, 'Across')], '#', [(14, 'Down'), (17, 'Across')], [(5, 'Down'), (17, 'Across')], [(6, 'Down'), (17, 'Across')], [(7, 'Down'), (17, 'Across')], [(8, 'Down'), (17, 'Across')], '#', [(9, 'Down'), (18, 'Across')], [(10, 'Down'), (18, 'Across')], [(11, 'Down'), (18, 'Across')], [(12, 'Down'), (18, 'Across')]], [[(1, 'Down'), (19, 'Across')], [(2, 'Down'), (19, 'Across')], [(3, 'Down'), (19, 'Across')], [(4, 'Down'), (19, 'Across')], [(19, 'Across'), (20, 'Down')], [(14, 'Down'), (19, 'Across')], [(5, 'Down'), (19, 'Across')], '#', [(7, 'Down'), (21, 'Across')], [(8, 'Down'), (21, 'Across')], [(21, 'Across'), (22, 'Down')], [(9, 'Down'), (21, 'Across')], [(10, 'Down'), (21, 'Across')], [(11, 'Down'), (21, 'Across')], [(12, 'Down'), (21, 'Across')]], ['#', '#', '#', [(4, 'Down'), (23, 'Across')], [(20, 'Down'), (23, 'Across')], [(14, 'Down'), (23, 'Across')], [(5, 'Down'), (23, 'Across')], [(23, 'Across'), (24, 'Down')], '#', [(8, 'Down'), (25, 'Across')], [(22, 'Down'), (25, 'Across')], [(9, 'Down'), (25, 'Across')], [(10, 'Down'), (25, 'Across')], [(11, 'Down'), (25, 'Across')], [(12, 'Down'), (25, 'Across')]], [[(26, 'Across'), (26, 'Down')], [(26, 'Across'), (27, 'Down')], [(26, 'Across'), (28, 'Down')], [(4, 'Down'), (26, 'Across')], [(20, 'Down'), (26, 'Across')], [(14, 'Down'), (26, 'Across')], '#', [(24, 'Down'), (29, 'Across')], [(29, 'Across'), (30, 'Down')], [(8, 'Down'), (29, 'Across')], [(22, 'Down'), (29, 'Across')], '#', [(10, 'Down'), (31, 'Across')], [(11, 'Down'), (31, 'Across')], [(12, 'Down'), (31, 'Across')]], [[(26, 'Down'), (32, 'Across')], [(27, 'Down'), (32, 'Across')], [(28, 'Down'), (32, 'Across')], [(4, 'Down'), (32, 'Across')], [(20, 'Down'), (32, 'Across')], '#', [(33, 'Across'), (33, 'Down')], [(24, 'Down'), (33, 'Across')], [(30, 'Down'), (33, 'Across')], [(8, 'Down'), (33, 'Across')], [(22, 'Down'), (33, 'Across')], [(33, 'Across'), (34, 'Down')], '#', '#', '#'], [[(26, 'Down'), (35, 'Across')], [(27, 'Down'), (35, 'Across')], [(28, 'Down'), (35, 'Across')], [(4, 'Down'), (35, 'Across')], '#', [(36, 'Across'), (36, 'Down')], [(33, 'Down'), (36, 'Across')], [(24, 'Down'), (36, 'Across')], [(30, 'Down'), (36, 'Across')], [(8, 'Down'), (36, 'Across')], '#', [(34, 'Down'), (37, 'Across')], [(37, 'Across'), (38, 'Down')], [(37, 'Across'), (39, 'Down')], [(37, 'Across'), (40, 'Down')]], ['#', '#', '#', [(4, 'Down'), (41, 'Across')], [(41, 'Across'), (42, 'Down')], [(36, 'Down'), (41, 'Across')], [(33, 'Down'), (41, 'Across')], [(24, 'Down'), (41, 'Across')], [(30, 'Down'), (41, 'Across')], '#', [(43, 'Across'), (43, 'Down')], [(34, 'Down'), (43, 'Across')], [(38, 'Down'), (43, 'Across')], [(39, 'Down'), (43, 'Across')], [(40, 'Down'), (43, 'Across')]], [[(44, 'Across'), (44, 'Down')], [(44, 'Across'), (45, 'Down')], [(44, 'Across'), (46, 'Down')], '#', [(42, 'Down'), (47, 'Across')], [(36, 'Down'), (47, 'Across')], [(33, 'Down'), (47, 'Across')], [(24, 'Down'), (47, 'Across')], '#', [(48, 'Across'), (48, 'Down')], [(43, 'Down'), (48, 'Across')], [(34, 'Down'), (48, 'Across')], [(38, 'Down'), (48, 'Across')], [(39, 'Down'), (48, 'Across')], [(40, 'Down'), (48, 'Across')]], [[(44, 'Down'), (49, 'Across')], [(45, 'Down'), (49, 'Across')], [(46, 'Down'), (49, 'Across')], [(49, 'Across'), (50, 'Down')], [(42, 'Down'), (49, 'Across')], [(36, 'Down'), (49, 'Across')], '#', [(24, 'Down'), (51, 'Across')], [(51, 'Across'), (52, 'Down')], [(48, 'Down'), (51, 'Across')], [(43, 'Down'), (51, 'Across')], [(34, 'Down'), (51, 'Across')], '#', '#', '#'], [[(44, 'Down'), (53, 'Across')], [(45, 'Down'), (53, 'Across')], [(46, 'Down'), (53, 'Across')], [(50, 'Down'), (53, 'Across')], [(42, 'Down'), (53, 'Across')], [(36, 'Down'), (53, 'Across')], [(53, 'Across'), (54, 'Down')], '#', [(52, 'Down'), (55, 'Across')], [(48, 'Down'), (55, 'Across')], [(43, 'Down'), (55, 'Across')], [(34, 'Down'), (55, 'Across')], [(55, 'Across'), (56, 'Down')], [(55, 'Across'), (57, 'Down')], [(55, 'Across'), (58, 'Down')]], [[(44, 'Down'), (59, 'Across')], [(45, 'Down'), (59, 'Across')], [(46, 'Down'), (59, 'Across')], [(50, 'Down'), (59, 'Across')], '#', [(36, 'Down'), (60, 'Across')], [(54, 'Down'), (60, 'Across')], [(60, 'Across'), (61, 'Down')], [(52, 'Down'), (60, 'Across')], [(48, 'Down'), (60, 'Across')], '#', [(34, 'Down'), (62, 'Across')], [(56, 'Down'), (62, 'Across')], [(57, 'Down'), (62, 'Across')], [(58, 'Down'), (62, 'Across')]], [[(44, 'Down'), (63, 'Across')], [(45, 'Down'), (63, 'Across')], [(46, 'Down'), (63, 'Across')], [(50, 'Down'), (63, 'Across')], '#', [(36, 'Down'), (64, 'Across')], [(54, 'Down'), (64, 'Across')], [(61, 'Down'), (64, 'Across')], [(52, 'Down'), (64, 'Across')], [(48, 'Down'), (64, 'Across')], '#', [(34, 'Down'), (65, 'Across')], [(56, 'Down'), (65, 'Across')], [(57, 'Down'), (65, 'Across')], [(58, 'Down'), (65, 'Across')]], [[(44, 'Down'), (66, 'Across')], [(45, 'Down'), (66, 'Across')], [(46, 'Down'), (66, 'Across')], [(50, 'Down'), (66, 'Across')], '#', [(36, 'Down'), (67, 'Across')], [(54, 'Down'), (67, 'Across')], [(61, 'Down'), (67, 'Across')], [(52, 'Down'), (67, 'Across')], '#', '#', [(34, 'Down'), (68, 'Across')], [(56, 'Down'), (68, 'Across')], [(57, 'Down'), (68, 'Across')], [(58, 'Down'), (68, 'Across')]]]
-	
-# 	assert(removeLetters(example1) == example1LettersRemoved)
-# 	assert(wordIdentifiers(example1) == example1WordIdentifiers)
-# 	assert(startIdentifiers(example1) == example1StartIdentifiers)
+	example1 = [['a', 'a', 'd', '#'], ['#', 's', '#', 'a'], ['#', '#', 'k', ' ']]
+	# Photo stored in Desktop
+	fullNYT = [	['h', 'e', 'l', 'l', '#', '#', 'w', 'e', 'l', 'l', '#', 'a', 'm', 'p', 's'],
+				['o', 'w', 'i', 'e', '#', 's', 'o', 'd', 'o', 'i', '#', 'c', 'a', 'l', 'l'], 
+				['b', 'a', 'n', 'g', '#', 't', 'r', 'u', 't', 'v', '#', 'c', 'r', 'a', 'y'], 
+				['o', 'n', 'e', 'w', 'o', 'o', 'd', '#', 's', 'e', 't', 'r', 'r', 't', 'e'], 
+				['#', '#', '#', 'a', 'm', 'i', 's', 'h', '#', 'b', 'r', 'a', 'c', 'e', 's'], 
+				['a', 'd', 'e', 'x', 'e', 'c', '#', 'a', 'l', 'l', 'a', '#', 'a', 'n', 't'], 
+				['b', 'a', 'l', 'i', 'n', '#', 'g', 'l', 'o', 'o', 'p', 's', '#', '#', '#'], 
+				['c', 'h', 'i', 'n', '#', 's', 'o', 'f', 't', 'g', '#', 'p', 'o', 'o', 'h'], 
+				['#', '#', '#', 'g', 'a', 'l', 'o', 'o', 't', '#', 't', 'i', 'a', 'r', 'a'], 
+				['i', 'r', 's', '#', 'b', 'o', 'f', 'f', '#', 'j', 'u', 'n', 'k', 'e', 't'], 
+				['t', 'e', 'e', 's', 'u', 'p', '#', 'f', 'r', 'a', 'n', 'c', '#', '#', '#'], 
+				['s', 'w', 'e', 'a', 't', 'i', 't', '#', 'a', 'd', 'a', 'y', 'a', 'g', 'o'], 
+				['s', 'i', 'n', 'g', '#', 't', 'i', 'n', 'g', 'e', '#', 'c', 'h', 'o', 'p'], 
+				['a', 'r', 'i', 'a', '#', 'c', 'r', 'e', 'e', 'd', '#', 'l', 'o', 'n', 'e'], 
+				['d', 'e', 'n', 's', '#', 'h', 'e', 'a', 'r', '#', '#', 'e', 'y', 'e', 'd'] ]
 
-# 	assert(removeLetters(fullNYT) == fullNYTLettersRemoved)
-# 	assert(wordIdentifiers(fullNYT) == fullNYTWordIdentifiers)
-# 	assert(startIdentifiers(fullNYT) == fullNYTStartIdentifiers)
-	
-# 	wordClassList = gridToWordClassList(example1)
-# 	solutions = solve(wordClassList)
-# 	print("Yay : )")
+	# Expected output
 
-# 	print("Success: All tests passed")
+	example1LettersRemoved = [[' ', ' ', ' ', '#'], ['#', ' ', '#', ' '], ['#', '#', ' ', ' ']]
+	example1PopulateWithIth = [[1, 2, ' ', '#'], ['#', ' ', '#', 3], ['#', '#', 4, ' ']]
+	example1PopulateWithInfo = [[[SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=3, pos=1)], 
+									[SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=2, pos=1)], 
+										[SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=3, pos=3)], 
+											'#'], 
+								['#', 
+									[SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=2, pos=2)], 
+										'#', 
+											[SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=2, pos=1)]], 
+								['#', 
+									'#', 
+										[SquareWordInfo(wid=WordId(ith=4, dir='Across'), len=2, pos=1)], 
+											[SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=2, pos=2), SquareWordInfo(wid=WordId(ith=4, dir='Across'), len=2, pos=2)]]]
+	example1StartPositionsDict = {WordId(ith=1, dir='Across'): (0, 0), WordId(ith=2, dir='Down'): (0, 1), WordId(ith=3, dir='Down'): (1, 3), WordId(ith=4, dir='Across'): (2, 2)}
+
+	fullNYTLettersRemoved = [[' ', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' '], ['#', '#', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], ['#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'], [' ', ' ', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', ' ', ' ']]
+	fullNYTPopulateWithIth = [[1, 2, 3, 4, '#', '#', 5, 6, 7, 8, '#', 9, 10, 11, 12], [13, ' ', ' ', ' ', '#', 14, ' ', ' ', ' ', ' ', '#', 15, ' ', ' ', ' '], [16, ' ', ' ', ' ', '#', 17, ' ', ' ', ' ', ' ', '#', 18, ' ', ' ', ' '], [19, ' ', ' ', ' ', 20, ' ', ' ', '#', 21, ' ', 22, ' ', ' ', ' ', ' '], ['#', '#', '#', 23, ' ', ' ', ' ', 24, '#', 25, ' ', ' ', ' ', ' ', ' '], [26, 27, 28, ' ', ' ', ' ', '#', 29, 30, ' ', ' ', '#', 31, ' ', ' '], [32, ' ', ' ', ' ', ' ', '#', 33, ' ', ' ', ' ', ' ', 34, '#', '#', '#'], [35, ' ', ' ', ' ', '#', 36, ' ', ' ', ' ', ' ', '#', 37, 38, 39, 40], ['#', '#', '#', 41, 42, ' ', ' ', ' ', ' ', '#', 43, ' ', ' ', ' ', ' '], [44, 45, 46, '#', 47, ' ', ' ', ' ', '#', 48, ' ', ' ', ' ', ' ', ' '], [49, ' ', ' ', 50, ' ', ' ', '#', 51, 52, ' ', ' ', ' ', '#', '#', '#'], [53, ' ', ' ', ' ', ' ', ' ', 54, '#', 55, ' ', ' ', ' ', 56, 57, 58], [59, ' ', ' ', ' ', '#', 60, ' ', 61, ' ', ' ', '#', 62, ' ', ' ', ' '], [63, ' ', ' ', ' ', '#', 64, ' ', ' ', ' ', ' ', '#', 65, ' ', ' ', ' '], [66, ' ', ' ', ' ', '#', 67, ' ', ' ', ' ', '#', '#', 68, ' ', ' ', ' ']]
+	fullNYTPopulateWithInfo = [[[SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=4, pos=1), SquareWordInfo(wid=WordId(ith=1, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=1, dir='Across'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=1)], '#', '#', [SquareWordInfo(wid=WordId(ith=5, dir='Across'), len=4, pos=1), SquareWordInfo(wid=WordId(ith=5, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=5, dir='Across'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=6, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=5, dir='Across'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=7, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=5, dir='Across'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=1)], '#', [SquareWordInfo(wid=WordId(ith=9, dir='Across'), len=4, pos=1), SquareWordInfo(wid=WordId(ith=9, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=9, dir='Across'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=9, dir='Across'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=9, dir='Across'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=1)]], [[SquareWordInfo(wid=WordId(ith=1, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=13, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=13, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=13, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=2), SquareWordInfo(wid=WordId(ith=13, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=14, dir='Across'), len=5, pos=1), SquareWordInfo(wid=WordId(ith=14, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=5, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=14, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=6, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=14, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=7, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=14, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=2), SquareWordInfo(wid=WordId(ith=14, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=9, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=15, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=15, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=15, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=15, dir='Across'), len=4, pos=4)]], [[SquareWordInfo(wid=WordId(ith=1, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=16, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=16, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=16, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=3), SquareWordInfo(wid=WordId(ith=16, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=14, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=17, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=5, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=17, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=6, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=17, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=7, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=17, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=3), SquareWordInfo(wid=WordId(ith=17, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=9, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=18, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=18, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=18, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=18, dir='Across'), len=4, pos=4)]], [[SquareWordInfo(wid=WordId(ith=1, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=1)], [SquareWordInfo(wid=WordId(ith=2, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=2)], [SquareWordInfo(wid=WordId(ith=3, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=3)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=4), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=4)], [SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=5), SquareWordInfo(wid=WordId(ith=20, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=14, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=6)], [SquareWordInfo(wid=WordId(ith=5, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=19, dir='Across'), len=7, pos=7)], '#', [SquareWordInfo(wid=WordId(ith=7, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=1)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=2)], [SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=3), SquareWordInfo(wid=WordId(ith=22, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=9, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=4)], [SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=5)], [SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=6)], [SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=21, dir='Across'), len=7, pos=7)]], ['#', '#', '#', [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=5), SquareWordInfo(wid=WordId(ith=23, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=20, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=23, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=14, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=23, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=5, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=23, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=23, dir='Across'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=1)], '#', [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=5), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=22, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=2)], [SquareWordInfo(wid=WordId(ith=9, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=3)], [SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=4)], [SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=25, dir='Across'), len=6, pos=6)]], [[SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=1), SquareWordInfo(wid=WordId(ith=26, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=27, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=28, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=6), SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=4)], [SquareWordInfo(wid=WordId(ith=20, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=14, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=26, dir='Across'), len=6, pos=6)], '#', [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=2), SquareWordInfo(wid=WordId(ith=29, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=29, dir='Across'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=30, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=6), SquareWordInfo(wid=WordId(ith=29, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=22, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=29, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=10, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=31, dir='Across'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=11, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=31, dir='Across'), len=3, pos=2)], [SquareWordInfo(wid=WordId(ith=12, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=31, dir='Across'), len=3, pos=3)]], [[SquareWordInfo(wid=WordId(ith=26, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=32, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=27, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=32, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=28, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=32, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=7), SquareWordInfo(wid=WordId(ith=32, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=20, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=32, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=1), SquareWordInfo(wid=WordId(ith=33, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=3), SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=2)], [SquareWordInfo(wid=WordId(ith=30, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=3)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=7), SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=4)], [SquareWordInfo(wid=WordId(ith=22, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=33, dir='Across'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=1)], '#', '#', '#'], [[SquareWordInfo(wid=WordId(ith=26, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=35, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=27, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=35, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=28, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=35, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=8), SquareWordInfo(wid=WordId(ith=35, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=36, dir='Across'), len=5, pos=1), SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=1)], [SquareWordInfo(wid=WordId(ith=33, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=36, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=4), SquareWordInfo(wid=WordId(ith=36, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=30, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=36, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=8, dir='Down'), len=8, pos=8), SquareWordInfo(wid=WordId(ith=36, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=2), SquareWordInfo(wid=WordId(ith=37, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=37, dir='Across'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=38, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=37, dir='Across'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=39, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=37, dir='Across'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=40, dir='Down'), len=3, pos=1)]], ['#', '#', '#', [SquareWordInfo(wid=WordId(ith=4, dir='Down'), len=9, pos=9), SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=42, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=2), SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=3)], [SquareWordInfo(wid=WordId(ith=33, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=4)], [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=5), SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=30, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=41, dir='Across'), len=6, pos=6)], '#', [SquareWordInfo(wid=WordId(ith=43, dir='Across'), len=5, pos=1), SquareWordInfo(wid=WordId(ith=43, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=3), SquareWordInfo(wid=WordId(ith=43, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=38, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=43, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=39, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=43, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=40, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=43, dir='Across'), len=5, pos=5)]], [[SquareWordInfo(wid=WordId(ith=44, dir='Across'), len=3, pos=1), SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=44, dir='Across'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=44, dir='Across'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=1)], '#', [SquareWordInfo(wid=WordId(ith=42, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=47, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=3), SquareWordInfo(wid=WordId(ith=47, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=33, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=47, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=6), SquareWordInfo(wid=WordId(ith=47, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=1), SquareWordInfo(wid=WordId(ith=48, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=43, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=2)], [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=4), SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=3)], [SquareWordInfo(wid=WordId(ith=38, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=4)], [SquareWordInfo(wid=WordId(ith=39, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=40, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=48, dir='Across'), len=6, pos=6)]], [[SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=1)], [SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=2)], [SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=2), SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=3)], [SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=50, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=42, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=5)], [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=4), SquareWordInfo(wid=WordId(ith=49, dir='Across'), len=6, pos=6)], '#', [SquareWordInfo(wid=WordId(ith=24, dir='Down'), len=7, pos=7), SquareWordInfo(wid=WordId(ith=51, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=51, dir='Across'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=52, dir='Down'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=48, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=51, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=43, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=51, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=5), SquareWordInfo(wid=WordId(ith=51, dir='Across'), len=5, pos=5)], '#', '#', '#'], [[SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=1)], [SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=2)], [SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=3), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=3)], [SquareWordInfo(wid=WordId(ith=50, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=4)], [SquareWordInfo(wid=WordId(ith=42, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=5)], [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=5), SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=6)], [SquareWordInfo(wid=WordId(ith=53, dir='Across'), len=7, pos=7), SquareWordInfo(wid=WordId(ith=54, dir='Down'), len=4, pos=1)], '#', [SquareWordInfo(wid=WordId(ith=52, dir='Down'), len=5, pos=2), SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=1)], [SquareWordInfo(wid=WordId(ith=48, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=2)], [SquareWordInfo(wid=WordId(ith=43, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=3)], [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=6), SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=4)], [SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=5), SquareWordInfo(wid=WordId(ith=56, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=6), SquareWordInfo(wid=WordId(ith=57, dir='Down'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=55, dir='Across'), len=7, pos=7), SquareWordInfo(wid=WordId(ith=58, dir='Down'), len=4, pos=1)]], [[SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=59, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=59, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=4), SquareWordInfo(wid=WordId(ith=59, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=50, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=59, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=6), SquareWordInfo(wid=WordId(ith=60, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=54, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=60, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=60, dir='Across'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=61, dir='Down'), len=3, pos=1)], [SquareWordInfo(wid=WordId(ith=52, dir='Down'), len=5, pos=3), SquareWordInfo(wid=WordId(ith=60, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=48, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=60, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=7), SquareWordInfo(wid=WordId(ith=62, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=56, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=62, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=57, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=62, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=58, dir='Down'), len=4, pos=2), SquareWordInfo(wid=WordId(ith=62, dir='Across'), len=4, pos=4)]], [[SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=63, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=63, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=5), SquareWordInfo(wid=WordId(ith=63, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=50, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=63, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=7), SquareWordInfo(wid=WordId(ith=64, dir='Across'), len=5, pos=1)], [SquareWordInfo(wid=WordId(ith=54, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=64, dir='Across'), len=5, pos=2)], [SquareWordInfo(wid=WordId(ith=61, dir='Down'), len=3, pos=2), SquareWordInfo(wid=WordId(ith=64, dir='Across'), len=5, pos=3)], [SquareWordInfo(wid=WordId(ith=52, dir='Down'), len=5, pos=4), SquareWordInfo(wid=WordId(ith=64, dir='Across'), len=5, pos=4)], [SquareWordInfo(wid=WordId(ith=48, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=64, dir='Across'), len=5, pos=5)], '#', [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=8), SquareWordInfo(wid=WordId(ith=65, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=56, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=65, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=57, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=65, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=58, dir='Down'), len=4, pos=3), SquareWordInfo(wid=WordId(ith=65, dir='Across'), len=4, pos=4)]], [[SquareWordInfo(wid=WordId(ith=44, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=66, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=45, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=66, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=46, dir='Down'), len=6, pos=6), SquareWordInfo(wid=WordId(ith=66, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=50, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=66, dir='Across'), len=4, pos=4)], '#', [SquareWordInfo(wid=WordId(ith=36, dir='Down'), len=8, pos=8), SquareWordInfo(wid=WordId(ith=67, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=54, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=67, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=61, dir='Down'), len=3, pos=3), SquareWordInfo(wid=WordId(ith=67, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=52, dir='Down'), len=5, pos=5), SquareWordInfo(wid=WordId(ith=67, dir='Across'), len=4, pos=4)], '#', '#', [SquareWordInfo(wid=WordId(ith=34, dir='Down'), len=9, pos=9), SquareWordInfo(wid=WordId(ith=68, dir='Across'), len=4, pos=1)], [SquareWordInfo(wid=WordId(ith=56, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=68, dir='Across'), len=4, pos=2)], [SquareWordInfo(wid=WordId(ith=57, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=68, dir='Across'), len=4, pos=3)], [SquareWordInfo(wid=WordId(ith=58, dir='Down'), len=4, pos=4), SquareWordInfo(wid=WordId(ith=68, dir='Across'), len=4, pos=4)]]]
+	fullNYTStartPositionsDict = {WordId(ith=1, dir='Across'): (0, 0), WordId(ith=1, dir='Down'): (0, 0), WordId(ith=2, dir='Down'): (0, 1), WordId(ith=3, dir='Down'): (0, 2), WordId(ith=4, dir='Down'): (0, 3), WordId(ith=5, dir='Across'): (0, 6), WordId(ith=5, dir='Down'): (0, 6), WordId(ith=6, dir='Down'): (0, 7), WordId(ith=7, dir='Down'): (0, 8), WordId(ith=8, dir='Down'): (0, 9), WordId(ith=9, dir='Across'): (0, 11), WordId(ith=9, dir='Down'): (0, 11), WordId(ith=10, dir='Down'): (0, 12), WordId(ith=11, dir='Down'): (0, 13), WordId(ith=12, dir='Down'): (0, 14), WordId(ith=13, dir='Across'): (1, 0), WordId(ith=14, dir='Across'): (1, 5), WordId(ith=14, dir='Down'): (1, 5), WordId(ith=15, dir='Across'): (1, 11), WordId(ith=16, dir='Across'): (2, 0), WordId(ith=17, dir='Across'): (2, 5), WordId(ith=18, dir='Across'): (2, 11), WordId(ith=19, dir='Across'): (3, 0), WordId(ith=20, dir='Down'): (3, 4), WordId(ith=21, dir='Across'): (3, 8), WordId(ith=22, dir='Down'): (3, 10), WordId(ith=23, dir='Across'): (4, 3), WordId(ith=24, dir='Down'): (4, 7), WordId(ith=25, dir='Across'): (4, 9), WordId(ith=26, dir='Across'): (5, 0), WordId(ith=26, dir='Down'): (5, 0), WordId(ith=27, dir='Down'): (5, 1), WordId(ith=28, dir='Down'): (5, 2), WordId(ith=29, dir='Across'): (5, 7), WordId(ith=30, dir='Down'): (5, 8), WordId(ith=31, dir='Across'): (5, 12), WordId(ith=32, dir='Across'): (6, 0), WordId(ith=33, dir='Across'): (6, 6), WordId(ith=33, dir='Down'): (6, 6), WordId(ith=34, dir='Down'): (6, 11), WordId(ith=35, dir='Across'): (7, 0), WordId(ith=36, dir='Across'): (7, 5), WordId(ith=36, dir='Down'): (7, 5), WordId(ith=37, dir='Across'): (7, 11), WordId(ith=38, dir='Down'): (7, 12), WordId(ith=39, dir='Down'): (7, 13), WordId(ith=40, dir='Down'): (7, 14), WordId(ith=41, dir='Across'): (8, 3), WordId(ith=42, dir='Down'): (8, 4), WordId(ith=43, dir='Across'): (8, 10), WordId(ith=43, dir='Down'): (8, 10), WordId(ith=44, dir='Across'): (9, 0), WordId(ith=44, dir='Down'): (9, 0), WordId(ith=45, dir='Down'): (9, 1), WordId(ith=46, dir='Down'): (9, 2), WordId(ith=47, dir='Across'): (9, 4), WordId(ith=48, dir='Across'): (9, 9), WordId(ith=48, dir='Down'): (9, 9), WordId(ith=49, dir='Across'): (10, 0), WordId(ith=50, dir='Down'): (10, 3), WordId(ith=51, dir='Across'): (10, 7), WordId(ith=52, dir='Down'): (10, 8), WordId(ith=53, dir='Across'): (11, 0), WordId(ith=54, dir='Down'): (11, 6), WordId(ith=55, dir='Across'): (11, 8), WordId(ith=56, dir='Down'): (11, 12), WordId(ith=57, dir='Down'): (11, 13), WordId(ith=58, dir='Down'): (11, 14), WordId(ith=59, dir='Across'): (12, 0), WordId(ith=60, dir='Across'): (12, 5), WordId(ith=61, dir='Down'): (12, 7), WordId(ith=62, dir='Across'): (12, 11), WordId(ith=63, dir='Across'): (13, 0), WordId(ith=64, dir='Across'): (13, 5), WordId(ith=65, dir='Across'): (13, 11), WordId(ith=66, dir='Across'): (14, 0), WordId(ith=67, dir='Across'): (14, 5), WordId(ith=68, dir='Across'): (14, 11)}
+	
+	# Tests
+
+	# Basic functions 
+
+	assert(removeLetters(example1) == example1LettersRemoved)
+	assert(populateWithIth(example1) == example1PopulateWithIth)
+	assert(populateWithInfo(example1) == example1PopulateWithInfo)
+	assert(startPositionsDict(example1) == example1StartPositionsDict)
+
+	assert(removeLetters(fullNYT) == fullNYTLettersRemoved)
+	assert(populateWithIth(fullNYT) == fullNYTPopulateWithIth)
+	assert(populateWithInfo(fullNYT) == fullNYTPopulateWithInfo)
+	assert(startPositionsDict(fullNYT) == fullNYTStartPositionsDict)
+
+	# Correctness test case for gridToWordClassList
+
+	wordClassList = gridToWordClassList(example1)
+	word0 = wordClassList[0]
+	word1 = wordClassList[1]
+	word2 = wordClassList[2]
+	word3 = wordClassList[3]
+	assert(word0._pointers[2] == word1)
+	assert(word0._indices[2] == 1)
+	assert(word1._pointers[1] == word0)
+	assert(word1._indices[1] == 2)
+	assert(word2._pointers[2] == word3)
+	assert(word2._indices[2] == 2)
+	assert(word3._pointers[2] == word2)
+	assert(word3._indices[2] == 2)
+
+	# Correctness test case for wordClassListToGrid
+
+	# Correct
+	expected = [['a', 'd', 'd', '#'], ['#', 'o', '#', 'a'], ['#', '#', 'a', 'm']]
+
+	wcList = gridToWordClassList(example1)
+	wids = list(reversed([word._id for word in wcList]))
+	solutions = solve(wcList)
+	filledInGrid = wordClassListToGrid(example1, solutions[0], wids)
+	assert(filledInGrid == expected)
+
+	print("Success: All tests passed")
 
 
 
