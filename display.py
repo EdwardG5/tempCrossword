@@ -8,11 +8,12 @@ I have added DEV to areas which are added on a whim to casually implement quickl
 from tkinter import *
 import string
 from constants import Constants
-from grid import populateWithIth
+from grid import populateWithIth, gridToWordClassList, wordClassListToGrid
+from crosswordSolver import solve
+from time import sleep
 
-# DEV -----------------
-import grid
-# DEV -----------------
+# FIXME
+from grid import printGrid
 
 # This is linked to an IntVar in app.mainarea via app. Used for global queries
 gridDrawn = False
@@ -337,7 +338,9 @@ class MainArea(Canvas):
 			self.delete(item)
 
 	# Handler for resize event. 
-	def _resize(self):
+	# Also used to redraw board. If no argument is passed, redraw exactly as it was.
+	# If a grid representation is passed, redraw the board with these letters instead.
+	def _resize(self, newFill=[]):
 		if self.gridDrawn.get():
 			# Store initial configuration
 			iselected = self.selected
@@ -349,7 +352,10 @@ class MainArea(Canvas):
 			# Reset canvas
 			self.clear()
 			# Redraw board
-			self.drawBoard(width=iwidth, height=iheight, fill=igrid)
+			if not newFill: 	# Keep the same
+				self.drawBoard(width=iwidth, height=iheight, fill=igrid)
+			else:				# Change fill
+				self.drawBoard(width=iwidth, height=iheight, fill=newFill)
 			# Restore + redraw numbers
 			self.numbers = inumbers
 			self.drawNumbers()
@@ -379,6 +385,7 @@ class MainArea(Canvas):
 	# Destroy bindings + make letters gray
 	def disable(self):
 		self['state'] = 'disabled'
+		self._remove_focus()
 		self._remove_bindings()
 
 	# Enabled user input + make appearance normal black + creates bindings
@@ -485,6 +492,14 @@ class MainArea(Canvas):
 					grid[row][col] = Constants.defaultBlockedChar
 		return grid
 
+	# Redraw the board (same configuration - enabled/disabled, numbers etc)
+	# Change fill if argument passed.
+	def redraw(self, newFill=[]):
+		if newFill:
+			self._resize(newFill)
+		else:
+			self._resize()
+
 class BottomBar(Frame):
 
 	def __init__(self, master):
@@ -496,28 +511,59 @@ class BottomBar(Frame):
 		# self['bg'] = 'green'
 
 		# Create attributes
-		self.prevB = Button(self, text='Prev', command=self.master.prev)
-		self.nextB = Button(self, text='Next', command=self.master.next)
 		self.currentSolution = 0
+		self.gotoSolution = StringVar()
 		self.totalSolutions = 0
 		self.text = StringVar()
+
+		self.prevB = Button(self, text='Prev', command=self.prev)
+		self.nextB = Button(self, text='Next', command=self.next)
+		self.gotoL = Label(self, text='Goto:')
+		self.gotoE = Entry(self, textvariable=self.gotoSolution, width=6)
 		self._update_text()
 		self.label = Label(self, textvariable=self.text)
+
+		# Enable input validation
+		self._vcmd = (self.register(self._vcmd), "%P")
+		self.gotoE.config(validate='key', validatecommand=self._vcmd, invalidcommand=self.bell)
+		
+		# Enable goto
+		self.gotoE.bind("<Return>", lambda event: self._goto())
 
 		# Place on screen
 		self.prevB.grid(row=0, column=1, sticky='nesw', pady=20, padx=0)
 		self.nextB.grid(row=0, column=2, sticky='nesw', pady=20, padx=0)
-		self.label.grid(row=0, column=4, sticky='nesw', pady=20, padx=0)
+		self.gotoL.grid(row=0, column=4, sticky='nesw', pady=20, padx=0)
+		self.gotoE.grid(row=0, column=5, sticky='nesw', pady=20, padx=0)
+		self.label.grid(row=0, column=7, sticky='nesw', pady=20, padx=0)
 		self.grid_rowconfigure(0, weight=1)
-		self.grid_columnconfigure(0, weight=1)
+		self.grid_columnconfigure(0, weight=2)
 		self.grid_columnconfigure(1, weight=0)
 		self.grid_columnconfigure(2, weight=0)
 		self.grid_columnconfigure(3, weight=1)
 		self.grid_columnconfigure(4, weight=0)
+		self.grid_columnconfigure(5, weight=0)
+		self.grid_columnconfigure(6, weight=2)
+		self.grid_columnconfigure(7, weight=0)
 
 		# Initialize appearances
 		self.reset()
 		self._init_appearance()
+
+	# Ensure entered text is a number
+	def _vcmd(self, P):
+		return len(P) == 0 or P.isnumeric()
+
+	# Goto particular solution number
+	def _goto(self):
+		try:
+			i = int(self.gotoSolution.get())
+			if 1 <= i <= self.totalSolutions:
+				self.currentSolution = i-1
+				self._update_text()
+				self.master.goto(self.currentSolution)
+		except:
+			pass
 
 	# Updates the displayed text in label
 	def _update_text(self):
@@ -530,38 +576,45 @@ class BottomBar(Frame):
 	def _init_appearance(self):
 
 		# Global settings 
-		widgets = [self.prevB, self.nextB, self.label]
+		widgets = [self.prevB, self.nextB, self.label, self.gotoL, self.gotoE]
 		self.master.init_appearance(widgets)
 
 		# Local settings
 
 	# Called by outside functions. If provided with an argument
-	# then set new totalSolutions, otherwise default to 0 + interpret
-	# as grid having been cleared. 
+	# then set new totalSolutions + currentSolution = 1, otherwise 
+	# default to 0 + interpret as grid having been cleared. 
 	def reset(self, newTotal=0):
 		# No solutions
 		if newTotal == 0:
 			self.currentSolution = 0
 			self.totalSolutions = 0
+			self.gotoSolution.set('')
 			self._update_text()
 			self.prevB['state'] = 'disabled'
 			self.nextB['state'] = 'disabled'
+			self.gotoL['state'] = 'disabled'
+			self.gotoE['state'] = 'disabled'
 			self.label['state'] = 'disabled'
 		else:
-			self.currentSolution = 1
+			self.currentSolution = 0
 			self.totalSolutions = newTotal
 			self._update_text()
 			self.prevB['state'] = 'normal'
 			self.nextB['state'] = 'normal'
+			self.gotoL['state'] = 'normal'
+			self.gotoE['state'] = 'normal'
 			self.label['state'] = 'normal'
 
 	def prev(self):
 		self.currentSolution = (self.currentSolution-1)%self.totalSolutions
 		self._update_text()
+		self.master.prev()
 
 	def next(self):
 		self.currentSolution = (self.currentSolution+1)%self.totalSolutions
 		self._update_text()
+		self.master.next()
 
 	def get(self):
 		return self.currentSolution
@@ -574,6 +627,8 @@ class Application(Tk):
 
 		# Variable to indicate whether a solve is in progress
 		self.solving = False
+		self.solutions = ([], []) 	# (listOfWordIds, list of solutions)
+		self.index = 0 				# Solutions currently drawn
 
 		# Set screen size + title + make adjustable
 		self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")
@@ -601,8 +656,8 @@ class Application(Tk):
 		self.sidebar._clear()
 
 		# DEV ----------------
-		self.printGrid = Button(text="Print Grid", command=lambda:print(repr(self.mainarea.getRepresentation())))
-		self.printGrid.grid()
+		# self.printGrid = Button(text="Print Grid", command=lambda:print(repr(self.mainarea.getRepresentation())))
+		# self.printGrid.grid()
 		# DEV ----------------
 
 	def init_appearance(self, widgets):
@@ -618,7 +673,7 @@ class Application(Tk):
 	# Functions with which to interact with application
 	######################################################################
 
-	# FIX
+	# Called by mainarea.draw
 	def drawGrid(self):
 		if not self.solving:
 			self.mainarea.drawBoard(self.sidebar.getWidth(), self.sidebar.getHeight(), fill=[])
@@ -626,30 +681,51 @@ class Application(Tk):
 			# FIX
 			pass
 
-	# FIX
+	# Called by mainarea.solve
 	def solve(self):
+		currentBoard = self.mainarea.getRepresentation()
 		self.mainarea.setNumbers()
 		self.mainarea.drawNumbers()
 		self.mainarea.disable()
+		self.update()
+		printGrid(currentBoard)
+		self.solutions = solve(gridToWordClassList(currentBoard))
+		self.bottombar.reset(len(self.solutions[1]))
+		newBoard = wordClassListToGrid(currentBoard, self.solutions[1][0], self.solutions[0])
+		self.mainarea.redraw(newBoard)
 
-	# FIX
+	# Called by mainarea.clear
 	def clear(self):
-		if not self.solving:
-			self.mainarea.clear()
-		else:
-			# FIX
-			pass
+		self.mainarea.clear()
+		self.bottombar.reset()
+		self.solutions = []
 
 	######################################################################
 	# Functions with which to display solutions
 	######################################################################
 	
-	# FIX
+	# Called by bottombar.prev
 	def prev(self):
-		self.bottombar.prev()
-	# FIX
+		currentBoard = self.mainarea.getRepresentation()
+		self.index -= 1
+		self.index %= len(self.solutions[1])
+		newBoard = wordClassListToGrid(currentBoard, self.solutions[1][self.index], self.solutions[0])
+		self.mainarea.redraw(newBoard)
+	
+	# Called by bottombar.next
 	def next(self):
-		self.bottombar.next()
+		currentBoard = self.mainarea.getRepresentation()
+		self.index += 1
+		self.index %= len(self.solutions[1])
+		newBoard = wordClassListToGrid(currentBoard, self.solutions[1][self.index], self.solutions[0])
+		self.mainarea.redraw(newBoard)
+
+	# Called by bottombar.goto
+	def goto(self, index):
+		currentBoard = self.mainarea.getRepresentation()
+		self.index = index
+		newBoard = wordClassListToGrid(currentBoard, self.solutions[1][self.index], self.solutions[0])
+		self.mainarea.redraw(newBoard)
 
 app = Application()
 

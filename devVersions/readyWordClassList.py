@@ -10,3 +10,10 @@ def readyWordList(wordList):
 	for x in wordList:
 		x.initializeModify()
 		x.initializeNotModify()
+
+# Turn a wcList into a list of WordIds (w1, w2, w3, ...) -> ((1, "Above"), (2, "Down"), ...)
+def extractIds(wcList):
+	ids = []
+	for word in wcList:
+		ids.append(word._id)
+	return ids
